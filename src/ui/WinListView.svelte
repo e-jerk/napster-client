@@ -132,14 +132,16 @@
     persist()
   }
 
-  let measure: CanvasRenderingContext2D | null = null
   function textWidth(text: string): number {
-    if (!measure) {
-      const c = document.createElement('canvas')
-      measure = c.getContext('2d')
-      if (measure) measure.font = '11px Tahoma, "MS Sans Serif", sans-serif'
-    }
-    return Math.ceil(measure?.measureText(text).width ?? text.length * 7)
+    const fallback = text.length * 7
+    const span = document.createElement('span')
+    span.style.cssText =
+      'position:absolute;left:-9999px;top:0;white-space:nowrap;font:11px Tahoma,"MS Sans Serif",sans-serif;'
+    span.textContent = text
+    document.body.appendChild(span)
+    const w = span.getBoundingClientRect().width
+    span.remove()
+    return Math.ceil(w > 1 ? w : fallback)
   }
 
   function autosize(i: number, e: MouseEvent) {
@@ -240,7 +242,7 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 6px;
+    width: 8px;
     height: 100%;
     min-width: 0;
     padding: 0;

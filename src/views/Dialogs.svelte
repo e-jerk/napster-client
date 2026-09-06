@@ -8,6 +8,7 @@
   import WinButton from '../ui/WinButton.svelte'
   import WinGroup from '../ui/WinGroup.svelte'
   import WinInput from '../ui/WinInput.svelte'
+  import WinListView from '../ui/WinListView.svelte'
   import WinSelect from '../ui/WinSelect.svelte'
 
   const speedOpts = SPEEDS.map((s) => ({ value: s.id, label: s.label }))
@@ -49,6 +50,57 @@
     if (!thread || !thread.input.trim()) return
     client.msg(nick, thread.input)
     thread.input = ''
+  }
+
+  const channelRows = $derived(
+    (app.channels.length
+      ? app.channels
+      : CHANNELS.map((c) => ({ name: c.name, users: 0, topic: c.topic }))
+    ).map((c) => ({
+      id: c.name,
+      values: [c.name, String(c.users), c.topic],
+    })),
+  )
+
+  const packetRows = $derived(
+    app.packets.map((p) => ({
+      id: p.id,
+      values: [p.dir, String(p.type), p.name, p.payload],
+    })),
+  )
+
+  const browseRows = $derived(
+    app.browse.files.map((f, i) => ({
+      id: `br-${i}`,
+      values: [f.filename, formatSize(f.size), formatBitrate(f.bitrate), formatDuration(f.duration)],
+    })),
+  )
+
+  let browseSelected = $state<string | null>(null)
+  let joinSelected = $state<string | null>(app.chat.channel)
+
+  function downloadBrowse(id: string) {
+    const i = Number(id.replace('br-', ''))
+    const f = app.browse.files[i]
+    if (!f) return
+    client.download({
+      id,
+      filename: f.filename,
+      artist: f.artist,
+      title: f.title,
+      size: f.size,
+      bitrate: f.bitrate,
+      freq: f.freq,
+      duration: f.duration,
+      md5: f.md5,
+      nick: f.nick,
+      ip: '',
+      port: 6699,
+      speed: 7,
+      ping: 80,
+      firewalled: false,
+    })
+    app.browse.open = false
   }
 </script>
 
@@ -171,33 +223,23 @@
         </div>
       </div>
       <div class="body">
-        <div class="listview" style="max-height: 240px">
-          <table>
-            <thead>
-              <tr>
-                <th>Channel</th>
-                <th>Users</th>
-                <th>Topic</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each (app.channels.length ? app.channels : CHANNELS.map((c) => ({ name: c.name, users: 0, topic: c.topic }))) as c (c.name)}
-                <tr
-                  class:sel={app.chat.channel === c.name}
-                  onclick={() => (app.chat.channel = c.name)}
-                  ondblclick={() => {
-                    client.join(c.name)
-                    app.dialogs.join = false
-                    app.view = 'chat'
-                  }}
-                >
-                  <td>{c.name}</td>
-                  <td>{c.users}</td>
-                  <td>{c.topic}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+        <div class="list-wrap">
+          <WinListView
+            persistKey="join"
+            columns={[
+              { key: 'ch', label: 'Channel', width: '110px' },
+              { key: 'users', label: 'Users', width: '56px', align: 'right' },
+              { key: 'topic', label: 'Topic', width: '240px' },
+            ]}
+            rows={channelRows}
+            bind:selected={joinSelected}
+            empty="No channels."
+            ondblclick={(id) => {
+              client.join(id)
+              app.dialogs.join = false
+              app.view = 'chat'
+            }}
+          />
         </div>
         <div class="btns">
           <span class="spacer"></span>
@@ -205,7 +247,7 @@
           <WinButton
             label="Join"
             onclick={() => {
-              client.join(app.chat.channel)
+              client.join(joinSelected || app.chat.channel)
               app.dialogs.join = false
               app.view = 'chat'
             }}
@@ -262,30 +304,18 @@
           Virtual NIC {app.localIp} · hub napster.local:8888 · data port 6699 · packets framed as
           u16le length + u16le type (OpenNap).
         </p>
-        <div class="listview" style="max-height: 280px">
-          <table>
-            <thead>
-              <tr>
-                <th>Dir</th>
-                <th>Type</th>
-                <th>Name</th>
-                <th>Payload</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each app.packets as p (p.id)}
-                <tr>
-                  <td>{p.dir}</td>
-                  <td>{p.type}</td>
-                  <td>{p.name}</td>
-                  <td>{p.payload}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-          {#if !app.packets.length}
-            <div class="empty-hint">Connect to see framed Napster messages on the virtual TCP stack.</div>
-          {/if}
+        <div class="list-wrap tall">
+          <WinListView
+            persistKey="bridge"
+            columns={[
+              { key: 'dir', label: 'Dir', width: '48px' },
+              { key: 'type', label: 'Type', width: '48px' },
+              { key: 'name', label: 'Name', width: '120px' },
+              { key: 'payload', label: 'Payload', width: '280px' },
+            ]}
+            rows={packetRows}
+            empty="Connect to see framed Napster messages on the virtual TCP stack."
+          />
         </div>
         <div class="btns">
           <span class="spacer"></span>
@@ -306,51 +336,20 @@
         </div>
       </div>
       <div class="body">
-        <div class="listview" style="max-height: 280px">
-          <table>
-            <thead>
-              <tr>
-                <th>Filename</th>
-                <th>Size</th>
-                <th>Bitrate</th>
-                <th>Length</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each app.browse.files as f, i (`${f.filename}-${i}`)}
-                <tr
-                  ondblclick={() => {
-                    client.download({
-                      id: `br-${i}`,
-                      filename: f.filename,
-                      artist: f.artist,
-                      title: f.title,
-                      size: f.size,
-                      bitrate: f.bitrate,
-                      freq: f.freq,
-                      duration: f.duration,
-                      md5: f.md5,
-                      nick: f.nick,
-                      ip: '',
-                      port: 6699,
-                      speed: 7,
-                      ping: 80,
-                      firewalled: false,
-                    })
-                    app.browse.open = false
-                  }}
-                >
-                  <td>{f.filename}</td>
-                  <td>{formatSize(f.size)}</td>
-                  <td>{formatBitrate(f.bitrate)}</td>
-                  <td>{formatDuration(f.duration)}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-          {#if !app.browse.files.length}
-            <div class="empty-hint">Waiting for browse results…</div>
-          {/if}
+        <div class="list-wrap tall">
+          <WinListView
+            persistKey="browse"
+            columns={[
+              { key: 'file', label: 'Filename', width: '240px' },
+              { key: 'size', label: 'Size', width: '72px', align: 'right' },
+              { key: 'br', label: 'Bitrate', width: '72px' },
+              { key: 'len', label: 'Length', width: '64px' },
+            ]}
+            rows={browseRows}
+            bind:selected={browseSelected}
+            empty="Waiting for browse results…"
+            ondblclick={downloadBrowse}
+          />
         </div>
         <div class="btns">
           <span class="spacer"></span>
@@ -490,6 +489,15 @@
   .ctx {
     position: fixed;
     z-index: 36;
+  }
+  .list-wrap {
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .list-wrap.tall {
+    height: 260px;
   }
   p {
     margin: 0;

@@ -9,10 +9,10 @@
   let addNick = $state('')
 
   const columns = [
-    { key: 'user', label: 'User', width: '28%' },
-    { key: 'st', label: 'Status', width: '16%' },
-    { key: 'files', label: 'Files', width: '14%', align: 'right' as const },
-    { key: 'line', label: 'Connection', width: '22%' },
+    { key: 'user', label: 'User', width: '140px' },
+    { key: 'st', label: 'Status', width: '80px' },
+    { key: 'files', label: 'Files', width: '64px', align: 'right' as const },
+    { key: 'line', label: 'Connection', width: '120px' },
   ]
 
   const rows = $derived(
@@ -29,6 +29,7 @@
 
 <div class="hot">
   <WinListView
+    persistKey="hotlist"
     {columns}
     {rows}
     bind:selected={app.hotSelected}

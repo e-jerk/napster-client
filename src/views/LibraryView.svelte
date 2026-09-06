@@ -5,13 +5,13 @@
   import WinListView from '../ui/WinListView.svelte'
 
   const columns = [
-    { key: 'file', label: 'Filename', width: '36%' },
-    { key: 'artist', label: 'Artist', width: '16%' },
-    { key: 'title', label: 'Title', width: '16%' },
-    { key: 'size', label: 'Size', width: '8%', align: 'right' as const },
-    { key: 'br', label: 'Bitrate', width: '8%' },
-    { key: 'len', label: 'Length', width: '8%' },
-    { key: 'src', label: 'Source', width: '8%' },
+    { key: 'file', label: 'Filename', width: '240px' },
+    { key: 'artist', label: 'Artist', width: '120px' },
+    { key: 'title', label: 'Title', width: '140px' },
+    { key: 'size', label: 'Size', width: '72px', align: 'right' as const },
+    { key: 'br', label: 'Bitrate', width: '72px' },
+    { key: 'len', label: 'Length', width: '64px' },
+    { key: 'src', label: 'Source', width: '80px' },
   ]
 
   const rows = $derived(
@@ -48,6 +48,7 @@
 
 <div class="lib">
   <WinListView
+    persistKey="library"
     {columns}
     {rows}
     bind:selected={app.librarySelected}

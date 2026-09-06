@@ -19,14 +19,14 @@
   const maxOpts = [50, 100, 200, 500].map((n) => ({ value: n, label: String(n) }))
 
   const columns = [
-    { key: 'file', label: 'Filename', width: '28%' },
-    { key: 'size', label: 'Size', width: '8%', align: 'right' as const },
-    { key: 'br', label: 'Bitrate', width: '8%' },
-    { key: 'freq', label: 'Freq', width: '7%' },
-    { key: 'len', label: 'Length', width: '7%' },
-    { key: 'user', label: 'User', width: '12%' },
-    { key: 'ping', label: 'Ping', width: '7%', align: 'right' as const },
-    { key: 'line', label: 'Connection', width: '13%' },
+    { key: 'file', label: 'Filename', width: '240px' },
+    { key: 'size', label: 'Size', width: '72px', align: 'right' as const },
+    { key: 'br', label: 'Bitrate', width: '72px' },
+    { key: 'freq', label: 'Freq', width: '56px' },
+    { key: 'len', label: 'Length', width: '56px' },
+    { key: 'user', label: 'User', width: '100px' },
+    { key: 'ping', label: 'Ping', width: '64px', align: 'right' as const },
+    { key: 'line', label: 'Connection', width: '110px' },
   ]
 
   const rows = $derived(
@@ -93,6 +93,7 @@
     </div>
   </div>
   <WinListView
+    persistKey="search"
     {columns}
     {rows}
     bind:selected={app.search.selected}

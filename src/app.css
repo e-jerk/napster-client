@@ -306,7 +306,7 @@ select.field {
 }
 
 .listview table {
-  width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font: 11px var(--font);
 }
@@ -317,11 +317,12 @@ select.field {
   background: var(--face);
   font-weight: 400;
   text-align: left;
-  padding: 2px 6px;
+  padding: 2px 8px 2px 6px;
   box-shadow:
     inset -1px -1px 0 var(--dk),
     inset 1px 1px 0 var(--hl);
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .listview td {
@@ -329,7 +330,11 @@ select.field {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 280px;
+}
+
+.listview.resizing,
+.listview.resizing * {
+  cursor: col-resize !important;
 }
 
 .listview tr.sel td {

@@ -22,6 +22,7 @@ Open **Actions → TCP Bridge…** after you connect to watch framed packets.
 
 - Connection Information wizard (speed + unused SOCKS dialog, matching the archived screenshot)
 - Search (artist / title / bitrate), double-click to download
+- Drag listview column edges to resize (double-click a divider to auto-fit)
 - Transfer manager (downloads + simulated uploads)
 - Chat rooms, `/join`, private messages
 - Library + internal player (short original WAV previews)

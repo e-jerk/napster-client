@@ -3,10 +3,57 @@
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
+  import WinListView from '../ui/WinListView.svelte'
 
-  function rows(dir: 'download' | 'upload') {
-    return app.transfers.filter((t) => t.direction === dir)
-  }
+  const downloadCols = [
+    { key: 'file', label: 'Filename', width: '200px' },
+    { key: 'size', label: 'Size', width: '72px', align: 'right' as const },
+    { key: 'user', label: 'User', width: '90px' },
+    { key: 'status', label: 'Status', width: '110px' },
+    { key: 'prog', label: 'Progress', width: '140px' },
+    { key: 'speed', label: 'Speed', width: '72px' },
+    { key: 'line', label: 'Line', width: '100px' },
+  ]
+
+  const uploadCols = [
+    { key: 'file', label: 'Filename', width: '220px' },
+    { key: 'size', label: 'Size', width: '72px', align: 'right' as const },
+    { key: 'user', label: 'User', width: '90px' },
+    { key: 'status', label: 'Status', width: '110px' },
+    { key: 'prog', label: 'Progress', width: '140px' },
+  ]
+
+  const downloads = $derived(
+    app.transfers
+      .filter((t) => t.direction === 'download')
+      .map((t) => ({
+        id: t.id,
+        values: [
+          basename(t.filename),
+          formatSize(t.size),
+          t.nick,
+          t.status,
+          { text: `${Math.round(t.percent)}%`, bar: t.percent },
+          t.bps ? `${Math.round(t.bps / 1024)} KB/s` : '—',
+          speedLabel(t.speed),
+        ],
+      })),
+  )
+
+  const uploads = $derived(
+    app.transfers
+      .filter((t) => t.direction === 'upload')
+      .map((t) => ({
+        id: t.id,
+        values: [
+          basename(t.filename),
+          formatSize(t.size),
+          t.nick,
+          t.status,
+          { text: `${Math.round(t.percent)}%`, bar: t.percent },
+        ],
+      })),
+  )
 
   let selected = $state<string | null>(null)
 </script>
@@ -14,73 +61,23 @@
 <div class="xfer">
   <div class="pane">
     <div class="label">Downloads</div>
-    <div class="listview">
-      <table>
-        <thead>
-          <tr>
-            <th>Filename</th>
-            <th>Size</th>
-            <th>User</th>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>Speed</th>
-            <th>Line</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each rows('download') as t (t.id)}
-            <tr class:sel={selected === t.id} onclick={() => (selected = t.id)}>
-              <td>{basename(t.filename)}</td>
-              <td>{formatSize(t.size)}</td>
-              <td>{t.nick}</td>
-              <td>{t.status}</td>
-              <td>
-                <div class="progress"><i style:width={`${t.percent}%`}></i></div>
-                {Math.round(t.percent)}%
-              </td>
-              <td>{t.bps ? `${Math.round(t.bps / 1024)} KB/s` : '—'}</td>
-              <td>{speedLabel(t.speed)}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-      {#if !rows('download').length}
-        <div class="empty-hint">No downloads. Double-click a search result to start one.</div>
-      {/if}
-    </div>
+    <WinListView
+      persistKey="downloads"
+      columns={downloadCols}
+      rows={downloads}
+      bind:selected
+      empty="No downloads. Double-click a search result to start one."
+    />
   </div>
   <div class="pane">
     <div class="label">Uploads</div>
-    <div class="listview">
-      <table>
-        <thead>
-          <tr>
-            <th>Filename</th>
-            <th>Size</th>
-            <th>User</th>
-            <th>Status</th>
-            <th>Progress</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each rows('upload') as t (t.id)}
-            <tr class:sel={selected === t.id} onclick={() => (selected = t.id)}>
-              <td>{basename(t.filename)}</td>
-              <td>{formatSize(t.size)}</td>
-              <td>{t.nick}</td>
-              <td>{t.status}</td>
-              <td>
-                <div class="progress"><i style:width={`${t.percent}%`}></i></div>
-                {Math.round(t.percent)}%
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-      {#if !rows('upload').length}
-        <div class="empty-hint">Nobody is downloading from your share folder yet.</div>
-      {/if}
-    </div>
+    <WinListView
+      persistKey="uploads"
+      columns={uploadCols}
+      rows={uploads}
+      bind:selected
+      empty="Nobody is downloading from your share folder yet."
+    />
   </div>
   <div class="actions">
     <WinButton
@@ -114,11 +111,5 @@
   .actions {
     display: flex;
     gap: 8px;
-  }
-  td .progress {
-    display: inline-block;
-    width: 90px;
-    vertical-align: middle;
-    margin-right: 6px;
   }
 </style>

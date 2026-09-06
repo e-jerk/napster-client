@@ -312,7 +312,7 @@ export class NapsterHub {
       if (!other.channels.has(name.toLowerCase())) continue
       send(user.socket, Msg.CHANNEL_USER, `${def?.name ?? name} ${other.nick} ${other.files.size} ${other.speed}`)
       if (other !== user) {
-        send(other.socket, Msg.CHANNEL_USER, `${def?.name ?? name} ${user.nick} ${user.files.size} ${user.speed}`)
+        send(other.socket, Msg.USER_JOIN, `${def?.name ?? name} ${user.nick} ${user.files.size} ${user.speed}`)
       }
     }
   }
@@ -332,10 +332,11 @@ export class NapsterHub {
     if (space < 0) return
     const channel = payload.slice(0, space)
     const text = payload.slice(space + 1)
-    const key = channel.toLowerCase()
+    const key = channel.replace(/^#/, '').toLowerCase()
     if (!user.channels.has(key)) this.join(user, channel)
+    const shown = channel.replace(/^#/, '')
     for (const other of this.users.values()) {
-      if (other.channels.has(key)) send(other.socket, Msg.PUBLIC, `${channel} ${user.nick} ${text}`)
+      if (other.channels.has(key)) send(other.socket, Msg.PUBLIC, `${shown} ${user.nick} ${text}`)
     }
   }
 

@@ -1,9 +1,10 @@
-import { app } from './session.svelte'
 import { NapsterClient, seedLibrary } from '../zero-native/client'
 import { NapsterHub } from '../zero-native/hub'
 import { spawnBots, type PeerDef } from '../zero-native/peers'
 import { VirtualTcp } from '../zero-native/tcp'
 import { uid } from './format'
+import { detectHub } from './hub'
+import { app } from './session.svelte'
 import type { Transfer } from './types'
 
 const tcp = new VirtualTcp()
@@ -15,9 +16,10 @@ export const client = new NapsterClient(tcp)
 let bots: PeerDef[] = []
 let chatTimer: ReturnType<typeof setInterval> | null = null
 let uploadTimer: ReturnType<typeof setInterval> | null = null
+let demoStarted = false
 
 function chatter(): void {
-  if (!app.connected || !bots.length) return
+  if (app.hub !== 'demo' || !app.connected || !bots.length) return
   const bot = bots[Math.floor(Math.random() * bots.length)]
   if (!bot) return
   const channel = bot.channels[Math.floor(Math.random() * bot.channels.length)]
@@ -26,7 +28,7 @@ function chatter(): void {
 }
 
 function maybeUpload(): void {
-  if (!app.connected || !app.library.length) return
+  if (app.hub !== 'demo' || !app.connected || !app.library.length) return
   if (Math.random() > 0.35) return
   const file = app.library[Math.floor(Math.random() * app.library.length)]
   const bot = bots[Math.floor(Math.random() * bots.length)]
@@ -66,13 +68,19 @@ function maybeUpload(): void {
   }, 90)
 }
 
-export const networkReady: Promise<void> = (async () => {
-  seedLibrary()
+export async function ensureDemoHub(): Promise<void> {
+  if (demoStarted) return
+  demoStarted = true
   bots = await spawnBots(tcp)
   chatTimer = setInterval(chatter, 5200)
   uploadTimer = setInterval(maybeUpload, 18000)
   setTimeout(chatter, 900)
   setTimeout(chatter, 2200)
+}
+
+export const networkReady: Promise<void> = (async () => {
+  seedLibrary()
+  if (detectHub() === 'demo') await ensureDemoHub()
 })()
 
 export function shutdownNetwork(): void {

@@ -12,6 +12,7 @@ import type {
   SpeedId,
   Transfer,
 } from './types'
+import { detectHub, defaultWssUrl, type HubKind } from './hub'
 import { applyThemeAttr, persistTheme, readTheme, type Theme } from './theme'
 
 export type Phase = 'setup' | 'login' | 'connecting' | 'online'
@@ -20,8 +21,11 @@ export const app = $state({
   theme: readTheme() as Theme,
   phase: 'setup' as Phase,
   connected: false,
+  hub: detectHub() as HubKind,
+  wssUrl: defaultWssUrl(),
   nick: (typeof localStorage !== 'undefined' && localStorage.getItem('napster-nick')) || 'napster_kid',
   email: '',
+  password: '',
   speed: 0 as SpeedId,
   localIp: '10.0.0.2',
   view: 'search' as AppView,

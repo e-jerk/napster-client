@@ -1,7 +1,8 @@
 <script lang="ts">
   import { CHANNELS } from '../lib/catalog'
   import { formatBitrate, formatDuration, formatSize, speedLabel } from '../lib/format'
-  import { client } from '../lib/network'
+  import { servedFromOpenNap } from '../lib/hub'
+  import { client, ensureDemoHub } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import { SPEEDS } from '../lib/types'
   import CatLogo from '../ui/CatLogo.svelte'
@@ -13,6 +14,11 @@
   import WinSelect from '../ui/WinSelect.svelte'
 
   const speedOpts = SPEEDS.map((s) => ({ value: s.id, label: s.label }))
+  const hubOpts = [
+    { value: 'wss', label: 'This OpenNAP server (WebSocket)' },
+    { value: 'demo', label: 'In-browser demo hub' },
+  ]
+  const onOpenNap = servedFromOpenNap()
 
   function persistNick() {
     try {
@@ -31,7 +37,10 @@
     app.nick = nick
     persistNick()
     app.error = ''
-    void client.connect(nick, app.speed === 0 ? 4 : app.speed)
+    void (async () => {
+      if (app.hub === 'demo') await ensureDemoHub()
+      await client.connect(nick, app.speed === 0 ? 4 : app.speed)
+    })()
   }
 
   function runAction(action: string) {
@@ -145,17 +154,39 @@
       <div class="body">
         <CatLogo />
         <p>
-          Your nickname is how other users will see you on the Napster network. The hub at
-          napster.local:8888 is a zero-native OpenNap replica running in this browser.
+          {#if app.hub === 'wss'}
+            Your nickname is how other users will see you on this OpenNAP hub. The client speaks
+            classic Napster frames over WebSocket (<code>naps-1</code>).
+          {:else}
+            Your nickname is how other users will see you on the Napster network. The hub at
+            napster.local:8888 is a zero-native OpenNap replica running in this browser.
+          {/if}
         </p>
+        <label class="row">
+          <span>Connect to:</span>
+          <WinSelect bind:value={app.hub} options={hubOpts} width="260px" />
+        </label>
         <label class="row">
           <span>Nickname:</span>
           <WinInput bind:value={app.nick} width="220px" onenter={connect} />
         </label>
-        <label class="row">
-          <span>Email:</span>
-          <WinInput bind:value={app.email} width="220px" placeholder="optional" />
-        </label>
+        {#if app.hub === 'wss'}
+          <label class="row">
+            <span>Password:</span>
+            <WinInput bind:value={app.password} type="password" width="220px" placeholder="empty = new nick" onenter={connect} />
+          </label>
+          {#if !onOpenNap}
+            <label class="row">
+              <span>Server:</span>
+              <WinInput bind:value={app.wssUrl} width="220px" placeholder="ws://host:8890/" onenter={connect} />
+            </label>
+          {/if}
+        {:else}
+          <label class="row">
+            <span>Email:</span>
+            <WinInput bind:value={app.email} width="220px" placeholder="optional" />
+          </label>
+        {/if}
         {#if app.error}
           <p class="err">{app.error}</p>
         {/if}
@@ -175,7 +206,7 @@
     <div class="window dialog slim">
       <TitleBar title="Napster" />
       <div class="body">
-        <p>Logging into napster.local:8888…</p>
+        <p>Logging into {app.hub === 'wss' ? app.wssUrl : 'napster.local:8888'}…</p>
         <p class="muted">{app.status}</p>
       </div>
     </div>

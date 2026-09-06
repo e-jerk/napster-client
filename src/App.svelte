@@ -22,7 +22,7 @@
 {#if bootError}
   <div class="boot-err">{bootError}</div>
 {:else if !ready}
-  <div class="boot">Starting napster.local…</div>
+  <div class="boot">{app.hub === 'wss' ? 'Starting Napster…' : 'Starting napster.local…'}</div>
 {:else}
   <div class="fill" data-theme={app.theme}>
     <Desktop />

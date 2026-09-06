@@ -61,6 +61,22 @@ npm run check
 3. Search for `modem`, `winamp`, `encode`, or `napster`.
 4. Open **Chat** or **Actions → Join Channel…** (try `#OpenNap`).
 
+## OpenNAP WebSocket
+
+The same UI can speak `naps-1` over WebSocket to a live [OpenNAP](https://github.com/e-jerk/opennap) hub. Served from that server at `/napster`, it defaults to the current origin (`ws:` / `wss:`). From this Vite app, choose **This OpenNAP server** on the nickname dialog, or open:
+
+```
+http://127.0.0.1:43179/?hub=wss&server=wss://napster.example.com/
+```
+
+Chat, search, hot list, and browse use the real hub. Peer file transfers still need a classic TCP client on port 6699.
+
+```bash
+npm run build
+```
+
+`dist/index.html` is a single file. OpenNAP embeds it and serves `GET /napster`.
+
 ## Stack
 
 Svelte 5 + Vite + TypeScript. No native addons, no backend process, no second component library.

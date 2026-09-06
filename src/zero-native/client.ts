@@ -1,11 +1,13 @@
 import { renderPreviewWav } from '../lib/audio'
 import { LOCAL_LIBRARY } from '../lib/catalog'
 import { finiteNumber, hash32, parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
+import { sameChannel } from '../lib/hub'
 import { app } from '../lib/session.svelte'
 import type { ChannelUser, LibraryItem, SearchHit, SharedFile, SpeedId, Transfer } from '../lib/types'
 import { shareLine } from './peers'
 import { MSG_NAME, Msg, PacketReader, send } from './protocol'
 import { VirtualTcp, type VirtualSocket } from './tcp'
+import { connectWss, type FrameSock } from './wss'
 
 const decoder = new TextDecoder()
 
@@ -48,7 +50,7 @@ function parseSearchHit(payload: string): SearchHit | null {
 }
 
 export class NapsterClient {
-  private sock: VirtualSocket | null = null
+  private sock: FrameSock | null = null
   private dataUnlisten: (() => void) | null = null
   private pending = new Map<string, Transfer>()
 
@@ -69,11 +71,17 @@ export class NapsterClient {
   async connect(nick: string, speed: SpeedId): Promise<void> {
     this.disconnect()
     app.phase = 'connecting'
-    app.status = 'Connecting to napster.local:8888…'
     const dataPort = 6699
-    this.dataUnlisten = this.tcp.listen(app.localIp, dataPort, (sock) => this.acceptPush(sock))
+    const remote = app.hub === 'wss' ? app.wssUrl : 'napster.local:8888'
+    app.status = `Connecting to ${remote}…`
+    if (app.hub === 'demo') {
+      this.dataUnlisten = this.tcp.listen(app.localIp, dataPort, (sock) => this.acceptPush(sock))
+    }
     try {
-      this.sock = await this.tcp.connect('napster.local', 8888, { host: app.localIp, port: 45000 })
+      this.sock =
+        app.hub === 'wss'
+          ? await connectWss(app.wssUrl)
+          : await this.tcp.connect('napster.local', 8888, { host: app.localIp, port: 45000 })
     } catch (err) {
       app.phase = 'login'
       app.status = err instanceof Error ? err.message : 'Connection failed'
@@ -91,10 +99,11 @@ export class NapsterClient {
       if (app.phase === 'online') {
         app.phase = 'login'
         app.connected = false
-        app.status = 'Disconnected from napster.local'
+        app.status = `Disconnected from ${remote}`
       }
     })
-    const payload = `${nick} x ${dataPort} "napster v2.0 BETA 10.3" ${speed}`
+    const pass = app.password.trim() || (app.hub === 'wss' ? '*' : 'x')
+    const payload = `${nick} ${pass} ${dataPort} "napster v2.0 BETA 10.3" ${speed}`
     log('out', Msg.LOGIN, payload)
     send(this.sock, Msg.LOGIN, payload)
     for (const file of app.library) {
@@ -120,11 +129,16 @@ export class NapsterClient {
     const artist = app.search.artist.trim()
     const title = app.search.title.trim()
     const bits: string[] = []
-    if (artist) bits.push(`ARTIST CONTAINS "${artist}"`)
-    if (title) bits.push(`TITLE CONTAINS "${title}"`)
-    if (!bits.length) bits.push(`FILENAME CONTAINS "${app.search.artist || app.search.title || 'mp3'}"`)
+    if (app.hub === 'wss') {
+      const q = [artist, title].filter(Boolean).join(' ') || 'mp3'
+      bits.push(`FILENAME CONTAINS "${q}"`)
+    } else {
+      if (artist) bits.push(`ARTIST CONTAINS "${artist}"`)
+      if (title) bits.push(`TITLE CONTAINS "${title}"`)
+      if (!bits.length) bits.push(`FILENAME CONTAINS "${app.search.artist || app.search.title || 'mp3'}"`)
+    }
     bits.push(`MAX_RESULTS ${app.search.maxResults}`)
-    if (app.search.minBitrate) bits.push(`BITRATE "AT LEAST" ${app.search.minBitrate}`)
+    if (app.search.minBitrate) bits.push(`BITRATE AT LEAST ${app.search.minBitrate}`)
     app.search.results = []
     app.search.searching = true
     app.search.selected = null
@@ -281,8 +295,8 @@ export class NapsterClient {
         app.connected = true
         app.phase = 'online'
         app.error = ''
-        app.status = 'Connected to napster.local'
-        this.join('Alternative')
+        app.status = app.hub === 'wss' ? `Connected to ${app.wssUrl}` : 'Connected to napster.local'
+        this.join(app.hub === 'wss' ? 'lobby' : 'Alternative')
         this.listChannels()
         break
       case Msg.ERROR:
@@ -291,6 +305,9 @@ export class NapsterClient {
         app.status = payload
         if (app.phase === 'connecting') app.phase = 'login'
         this.failPending(payload)
+        break
+      case Msg.NOSUCH:
+        app.status = payload
         break
       case Msg.MOTD:
         app.chat.messages.push({
@@ -349,9 +366,10 @@ export class NapsterClient {
         })
         break
       }
+      case Msg.USER_JOIN:
       case Msg.CHANNEL_USER: {
         const [ch, nick, files, speed] = payload.split(/\s+/)
-        if ((ch ?? '') !== app.chat.channel) break
+        if (!sameChannel(ch ?? '', app.chat.channel)) break
         const entry: ChannelUser = {
           nick: nick ?? '',
           files: Number(files ?? 0),
@@ -361,11 +379,23 @@ export class NapsterClient {
         if (entry.nick && !app.chat.users.some((u) => u.nick === entry.nick)) {
           app.chat.users = [...app.chat.users, entry].sort((a, b) => a.nick.localeCompare(b.nick))
         }
+        if (type === Msg.USER_JOIN && entry.nick && entry.nick !== app.nick) {
+          app.chat.messages.push({
+            id: uid('joinuser'),
+            kind: 'system',
+            channel: ch,
+            nick: entry.nick,
+            text: `${entry.nick} has joined the channel`,
+            at: Date.now(),
+          })
+        }
         break
       }
+      case Msg.CHANNEL_USER_END:
+        break
       case Msg.CHANNEL_PART: {
         const [ch, nick] = payload.split(/\s+/)
-        if (ch === app.chat.channel) {
+        if (sameChannel(ch ?? '', app.chat.channel)) {
           app.chat.users = app.chat.users.filter((u) => u.nick !== nick)
           app.chat.messages.push({
             id: uid('part'),
@@ -471,6 +501,11 @@ export class NapsterClient {
     const port = Number(m[3])
     const t = this.pending.get(`${nick}|${q.quoted}`)
     if (!t) return
+    if (app.hub === 'wss') {
+      this.patch(t.id, { status: 'Queued' })
+      app.status = 'Peer transfers need a classic Napster client on TCP 6699'
+      return
+    }
     if (port === 0) {
       this.patch(t.id, { status: 'Queued' })
       app.status = `${nick} is firewalled — waiting for push`

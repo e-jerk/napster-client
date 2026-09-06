@@ -143,6 +143,9 @@
       <div class="menu-pop" style="left: 232px; top: 24px">
         <button onclick={() => { app.dialogs.about = true; closeMenus() }}>Napster Help</button>
         <button onclick={() => { window.open('https://archive.org/details/napv2b10-3', '_blank'); closeMenus() }}>Original EXE on archive.org</button>
+        {#if app.hub === 'wss'}
+          <button onclick={() => { window.location.href = '/'; closeMenus() }}>OpenNAP chat</button>
+        {/if}
       </div>
     {/if}
 

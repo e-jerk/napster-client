@@ -5,6 +5,7 @@
   import { app } from '../lib/session.svelte'
   import { SPEEDS } from '../lib/types'
   import CatLogo from '../ui/CatLogo.svelte'
+  import TitleBar from '../ui/TitleBar.svelte'
   import WinButton from '../ui/WinButton.svelte'
   import WinGroup from '../ui/WinGroup.svelte'
   import WinInput from '../ui/WinInput.svelte'
@@ -107,12 +108,7 @@
 {#if app.phase === 'setup'}
   <div class="dialog-backdrop">
     <div class="window dialog">
-      <div class="caption">
-        <span>Connection Information</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.win.open = false)}>×</button>
-        </div>
-      </div>
+      <TitleBar title="Connection Information" buttons="close" onclose={() => (app.win.open = false)} />
       <div class="body">
         <CatLogo />
         <WinGroup title="Connection Information">
@@ -135,7 +131,7 @@
           <WinButton label="Help" onclick={() => (app.dialogs.about = true)} />
           <span class="spacer"></span>
           <WinButton label="Cancel" onclick={() => (app.win.open = false)} />
-          <WinButton label="<u>N</u>ext &gt;" onclick={() => (app.phase = 'login')} />
+          <WinButton primary label="<u>N</u>ext &gt;" onclick={() => (app.phase = 'login')} />
         </div>
       </div>
     </div>
@@ -145,12 +141,7 @@
 {#if app.phase === 'login'}
   <div class="dialog-backdrop">
     <div class="window dialog">
-      <div class="caption">
-        <span>Choose a Nickname</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.phase = 'setup')}>×</button>
-        </div>
-      </div>
+      <TitleBar title="Choose a Nickname" buttons="close" onclose={() => (app.phase = 'setup')} />
       <div class="body">
         <CatLogo />
         <p>
@@ -172,7 +163,7 @@
           <WinButton label="&lt; Back" onclick={() => (app.phase = 'setup')} />
           <span class="spacer"></span>
           <WinButton label="Cancel" onclick={() => (app.win.open = false)} />
-          <WinButton label="Connect" onclick={connect} />
+          <WinButton primary label="Connect" onclick={connect} />
         </div>
       </div>
     </div>
@@ -182,7 +173,7 @@
 {#if app.phase === 'connecting'}
   <div class="dialog-backdrop">
     <div class="window dialog slim">
-      <div class="caption"><span>Napster</span></div>
+      <TitleBar title="Napster" />
       <div class="body">
         <p>Logging into napster.local:8888…</p>
         <p class="muted">{app.status}</p>
@@ -194,19 +185,14 @@
 {#if app.dialogs.proxy}
   <div class="dialog-backdrop" style:z-index="30">
     <div class="window dialog slim">
-      <div class="caption">
-        <span>Proxy Setup</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.dialogs.proxy = false)}>×</button>
-        </div>
-      </div>
+      <TitleBar title="Proxy Setup" buttons="close" onclose={() => (app.dialogs.proxy = false)} />
       <div class="body">
         <p>SOCKS settings are stored only in this page. The zero-native bridge never leaves the browser, so a proxy is not used.</p>
         <label class="row"><span>Host</span><WinInput bind:value={app.proxy.host} width="180px" /></label>
         <label class="row"><span>Port</span><WinInput bind:value={app.proxy.port} width="80px" /></label>
         <div class="btns">
           <span class="spacer"></span>
-          <WinButton label="OK" onclick={() => (app.dialogs.proxy = false)} />
+          <WinButton primary label="OK" onclick={() => (app.dialogs.proxy = false)} />
         </div>
       </div>
     </div>
@@ -216,12 +202,7 @@
 {#if app.dialogs.join}
   <div class="dialog-backdrop">
     <div class="window dialog">
-      <div class="caption">
-        <span>Join Channel</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.dialogs.join = false)}>×</button>
-        </div>
-      </div>
+      <TitleBar title="Join Channel" buttons="close" onclose={() => (app.dialogs.join = false)} />
       <div class="body">
         <div class="list-wrap">
           <WinListView
@@ -245,6 +226,7 @@
           <span class="spacer"></span>
           <WinButton label="Cancel" onclick={() => (app.dialogs.join = false)} />
           <WinButton
+            primary
             label="Join"
             onclick={() => {
               client.join(joinSelected || app.chat.channel)
@@ -261,12 +243,7 @@
 {#if app.dialogs.about}
   <div class="dialog-backdrop">
     <div class="window dialog">
-      <div class="caption">
-        <span>About Napster</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.dialogs.about = false)}>×</button>
-        </div>
-      </div>
+      <TitleBar title="About Napster" buttons="close" onclose={() => (app.dialogs.about = false)} />
       <div class="body">
         <CatLogo />
         <p><b>Napster v2.0 BETA 10.3</b> (web recreation)</p>
@@ -283,7 +260,7 @@
         <p>Shared titles are original demo recordings, not commercial releases.</p>
         <div class="btns">
           <span class="spacer"></span>
-          <WinButton label="OK" onclick={() => (app.dialogs.about = false)} />
+          <WinButton primary label="OK" onclick={() => (app.dialogs.about = false)} />
         </div>
       </div>
     </div>
@@ -293,12 +270,7 @@
 {#if app.dialogs.bridge}
   <div class="dialog-backdrop">
     <div class="window dialog wide">
-      <div class="caption">
-        <span>TCP Bridge — zero native</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.dialogs.bridge = false)}>×</button>
-        </div>
-      </div>
+      <TitleBar title="TCP Bridge — zero native" buttons="close" onclose={() => (app.dialogs.bridge = false)} />
       <div class="body">
         <p>
           Virtual NIC {app.localIp} · hub napster.local:8888 · data port 6699 · packets framed as
@@ -329,12 +301,7 @@
 {#if app.browse.open}
   <div class="dialog-backdrop">
     <div class="window dialog wide">
-      <div class="caption">
-        <span>Browse — {app.browse.nick}</span>
-        <div class="caption-btns">
-          <button class="caption-btn" onclick={() => (app.browse.open = false)}>×</button>
-        </div>
-      </div>
+      <TitleBar title="Browse — {app.browse.nick}" buttons="close" onclose={() => (app.browse.open = false)} />
       <div class="body">
         <div class="list-wrap tall">
           <WinListView
@@ -362,10 +329,10 @@
 
 {#each app.pms.filter((p) => p.open) as pm (pm.nick)}
   <div class="pm window" style:left={`${pm.x}px`} style:top={`${pm.y}px`}>
-    <div
-      class="caption"
-      role="toolbar"
-      tabindex="0"
+    <TitleBar
+      title="Private Message — {pm.nick}"
+      buttons="close"
+      onclose={() => (pm.open = false)}
       onpointerdown={(e) => {
         const sx = e.clientX - pm.x
         const sy = e.clientY - pm.y
@@ -380,12 +347,7 @@
         window.addEventListener('pointermove', move)
         window.addEventListener('pointerup', up)
       }}
-    >
-      <span>Private Message — {pm.nick}</span>
-      <div class="caption-btns">
-        <button class="caption-btn" onclick={() => (pm.open = false)}>×</button>
-      </div>
-    </div>
+    />
     <div class="pm-body">
       <div class="chat-log">
         {#each pm.messages as line (line.id)}

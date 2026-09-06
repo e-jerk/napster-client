@@ -18,6 +18,15 @@ Browsers cannot open raw TCP sockets. Instead of Electron, Node `net`, or a nati
 
 Open **Actions → TCP Bridge…** after you connect to watch framed packets.
 
+## Mac and Windows looks
+
+The Napster client is the same zero-native web window on both desktops. Switch styles from the **Windows | Mac** control in the toolbar (and on the Mac menu bar), or from **View**, the Apple menu, or the Start menu.
+
+- **Mac OS X Aqua** — menu bar, traffic-light title bar, brushed toolbar, and dock. The app window sits on the Aqua desktop; nothing native is launched.
+- **Windows 98** — teal desktop, in-window menus, caption buttons, and a taskbar.
+
+The choice is stored in `localStorage` as `napster-theme`.
+
 ## What works
 
 - Connection Information wizard (speed + unused SOCKS dialog, matching the archived screenshot)
@@ -28,6 +37,7 @@ Open **Actions → TCP Bridge…** after you connect to watch framed packets.
 - Library + internal player (short original WAV previews)
 - Hot list, browse user, context menus
 - Status bar file / GB / user counts
+- Desktop theme switch (Mac Aqua ↔ Windows 98) around the same in-browser hub
 
 ## Run locally
 

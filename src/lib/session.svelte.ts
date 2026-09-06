@@ -12,10 +12,12 @@ import type {
   SpeedId,
   Transfer,
 } from './types'
+import { applyThemeAttr, persistTheme, readTheme, type Theme } from './theme'
 
 export type Phase = 'setup' | 'login' | 'connecting' | 'online'
 
 export const app = $state({
+  theme: readTheme() as Theme,
   phase: 'setup' as Phase,
   connected: false,
   nick: (typeof localStorage !== 'undefined' && localStorage.getItem('napster-nick')) || 'napster_kid',
@@ -69,12 +71,22 @@ export const app = $state({
   },
   proxy: { enabled: false, host: '', port: '1080', version: '5' },
   win: {
-    x: 36,
-    y: 22,
+    x: 48,
+    y: 40,
     w: 940,
-    h: 640,
+    h: 620,
     maximized: typeof window !== 'undefined' && window.innerWidth < 860,
     minimized: false,
     open: true,
   },
 })
+
+export function setTheme(theme: Theme): void {
+  app.theme = theme
+  persistTheme(theme)
+  applyThemeAttr(theme)
+  if (theme === 'mac' && !app.win.maximized && app.win.y < 28) app.win.y = 40
+  app.dialogs.menu = null
+  app.dialogs.start = false
+  app.status = theme === 'mac' ? 'Mac OS X Aqua look' : 'Windows 98 look'
+}

@@ -24,7 +24,7 @@
 {:else if !ready}
   <div class="boot">Starting napster.local…</div>
 {:else}
-  <div class="fill">
+  <div class="fill" data-theme={app.theme}>
     <Desktop />
   </div>
 {/if}
@@ -39,9 +39,9 @@
   .boot-err {
     display: grid;
     place-items: center;
-    background: #008080;
+    background: var(--desktop);
     color: #fff;
-    font: 11px Tahoma, sans-serif;
+    font: 12px/1.25 var(--font);
   }
   .boot-err {
     color: #fff0c0;

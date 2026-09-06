@@ -15,7 +15,13 @@ export function formatSize(bytes: number): string {
 }
 
 export function formatGigs(bytes: number): string {
-  return (bytes / (1024 * 1024 * 1024)).toFixed(1)
+  const n = bytes / (1024 * 1024 * 1024)
+  return Number.isFinite(n) ? n.toFixed(1) : '0.0'
+}
+
+export function finiteNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) ? n : fallback
 }
 
 export function formatDuration(seconds: number): string {

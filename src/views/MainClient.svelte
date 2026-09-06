@@ -209,7 +209,7 @@
   <div class="statusbar">
     <div style="flex: 1 1 220px">{app.status}</div>
     <div>{app.stats.files.toLocaleString()} files</div>
-    <div>{app.stats.gigs} GB</div>
+    <div>{Number.isFinite(app.stats.gigs) ? app.stats.gigs.toFixed(1) : '0.0'} GB</div>
     <div>{app.stats.users} users</div>
     <div>{app.connected ? 'Connected' : 'Offline'} · {app.nick}</div>
   </div>

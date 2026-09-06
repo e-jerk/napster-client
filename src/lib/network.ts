@@ -47,15 +47,22 @@ function maybeUpload(): void {
     startedAt: Date.now(),
   }
   app.transfers = [t, ...app.transfers]
+  const id = t.id
   const started = Date.now()
   const iv = window.setInterval(() => {
+    const row = app.transfers.find((x) => x.id === id)
+    if (!row) {
+      window.clearInterval(iv)
+      return
+    }
     const p = Math.min(100, ((Date.now() - started) / 2600) * 100)
-    t.percent = p
+    row.percent = p
     if (p >= 100) {
-      t.status = 'Complete'
-      t.percent = 100
+      row.status = 'Complete'
+      row.percent = 100
       window.clearInterval(iv)
     }
+    app.transfers = app.transfers.slice()
   }, 90)
 }
 

@@ -1,5 +1,5 @@
 import { CHANNELS, MOTD, type PeerDef } from '../lib/catalog'
-import { parseQuoted, quoteFilename } from '../lib/format'
+import { finiteNumber, parseQuoted, quoteFilename } from '../lib/format'
 import type { SharedFile, SpeedId } from '../lib/types'
 import { Msg, PacketReader, send } from './protocol'
 import type { VirtualSocket, VirtualTcp } from './tcp'
@@ -84,7 +84,7 @@ export class NapsterHub {
     let bytes = 0
     for (const u of this.users.values()) {
       files += u.files.size
-      for (const f of u.files.values()) bytes += f.size
+      for (const f of u.files.values()) bytes += finiteNumber(f.size)
     }
     return { users: this.users.size, files, bytes }
   }
@@ -192,11 +192,11 @@ export class NapsterHub {
     const parts = q.rest.split(/\s+/)
     const file: SharedFile = {
       filename: q.quoted,
-      md5: parts[0] ?? '',
-      size: Number(parts[1] ?? 0),
-      bitrate: Number(parts[2] ?? 128),
-      freq: Number(parts[3] ?? 44100),
-      duration: Number(parts[4] ?? 0),
+      md5: /^[0-9a-f]{8,32}$/i.test(parts[0] ?? '') ? (parts[0] ?? '') : '',
+      size: finiteNumber(parts[1]),
+      bitrate: finiteNumber(parts[2], 128),
+      freq: finiteNumber(parts[3], 44100),
+      duration: finiteNumber(parts[4]),
       artist: '',
       title: '',
     }

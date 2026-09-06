@@ -1,6 +1,6 @@
 import { renderPreviewWav } from '../lib/audio'
 import { LOCAL_LIBRARY } from '../lib/catalog'
-import { parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
+import { finiteNumber, hash32, parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
 import { app } from '../lib/session.svelte'
 import type { ChannelUser, LibraryItem, SearchHit, SharedFile, SpeedId, Transfer } from '../lib/types'
 import { shareLine } from './peers'
@@ -51,6 +51,18 @@ export class NapsterClient {
   private sock: VirtualSocket | null = null
   private dataUnlisten: (() => void) | null = null
   private pending = new Map<string, Transfer>()
+
+  private row(id: string): Transfer | undefined {
+    return app.transfers.find((x) => x.id === id)
+  }
+
+  private patch(id: string, next: Partial<Transfer>): Transfer | undefined {
+    const row = this.row(id)
+    if (!row) return
+    Object.assign(row, next)
+    app.transfers = app.transfers.slice()
+    return this.row(id)
+  }
 
   constructor(private tcp: VirtualTcp) {}
 
@@ -142,7 +154,8 @@ export class NapsterClient {
       startedAt: Date.now(),
     }
     app.transfers = [t, ...app.transfers]
-    this.pending.set(`${hit.nick}|${hit.filename}`, t)
+    const live = app.transfers.find((x) => x.id === t.id) ?? t
+    this.pending.set(`${hit.nick}|${hit.filename}`, live)
     const payload = `${hit.nick} ${quoteFilename(hit.filename)}`
     log('out', Msg.DOWNLOAD, payload)
     send(this.sock, Msg.DOWNLOAD, payload)
@@ -150,9 +163,9 @@ export class NapsterClient {
   }
 
   abort(id: string): void {
-    const t = app.transfers.find((x) => x.id === id)
+    const t = this.row(id)
     if (!t || t.status === 'Complete') return
-    t.status = 'Aborted'
+    this.patch(id, { status: 'Aborted' })
   }
 
   clearFinished(): void {
@@ -288,10 +301,10 @@ export class NapsterClient {
         })
         break
       case Msg.SERVER_STATS: {
-        const [users, files, gigs] = payload.split(/\s+/)
-        app.stats.users = Number(users ?? 0)
-        app.stats.files = Number(files ?? 0)
-        app.stats.gigs = Number(gigs ?? 0)
+        const [users, files, gigs] = payload.trim().split(/\s+/)
+        app.stats.users = finiteNumber(users)
+        app.stats.files = finiteNumber(files)
+        app.stats.gigs = finiteNumber(gigs)
         break
       }
       case Msg.SEARCH_RESULT: {
@@ -441,8 +454,10 @@ export class NapsterClient {
 
   private failPending(reason: string): void {
     for (const t of this.pending.values()) {
-      if (t.status === 'Connecting') {
-        t.status = reason.toLowerCase().includes('not available') ? 'File not available' : 'User offline'
+      if (this.row(t.id)?.status === 'Connecting') {
+        this.patch(t.id, {
+          status: reason.toLowerCase().includes('not available') ? 'File not available' : 'User offline',
+        })
       }
     }
   }
@@ -457,7 +472,7 @@ export class NapsterClient {
     const t = this.pending.get(`${nick}|${q.quoted}`)
     if (!t) return
     if (port === 0) {
-      t.status = 'Queued'
+      this.patch(t.id, { status: 'Queued' })
       app.status = `${nick} is firewalled — waiting for push`
       return
     }
@@ -465,14 +480,14 @@ export class NapsterClient {
   }
 
   private async pullFile(t: Transfer, host: string, port: number, filename: string): Promise<void> {
-    t.status = 'Connecting'
+    this.patch(t.id, { status: 'Connecting' })
     try {
       const sock = await this.tcp.connect(host, port, { host: app.localIp })
-      t.status = 'Getting header'
+      this.patch(t.id, { status: 'Getting header' })
       sock.write(`GET ${app.nick} ${quoteFilename(filename)} 0\n`)
       await this.readTransfer(sock, t)
     } catch {
-      t.status = 'Timed out'
+      this.patch(t.id, { status: 'Timed out' })
     }
   }
 
@@ -513,15 +528,16 @@ export class NapsterClient {
             startedAt: Date.now(),
           }
           app.transfers = [transfer, ...app.transfers]
+          transfer = app.transfers.find((x) => x.id === transfer!.id) ?? transfer
         }
-        transfer.status = 'Transferring'
+        this.patch(transfer.id, { status: 'Transferring' })
         if (rest) chunks.push(new TextEncoder().encode(rest))
         return
       }
       chunks.push(chunk)
       const got = chunks.reduce((n, c) => n + c.length, 0)
       if (transfer) {
-        transfer.percent = Math.min(99, Math.round((got / Math.max(expect, 1)) * 100))
+        this.patch(transfer.id, { percent: Math.min(99, Math.round((got / Math.max(expect, 1)) * 100)) })
       }
       if (got >= expect && transfer) this.finishDownload(transfer, chunks)
     })
@@ -535,16 +551,14 @@ export class NapsterClient {
       const seconds = transferSeconds(t.size, Math.min(app.speed, t.speed))
       const started = Date.now()
       const tick = window.setInterval(() => {
-        if (t.status === 'Aborted') {
+        if (this.row(t.id)?.status === 'Aborted') {
           window.clearInterval(tick)
           sock.close()
           resolve()
           return
         }
         const p = Math.min(99, ((Date.now() - started) / (seconds * 1000)) * 100)
-        t.percent = p
-        t.bps = t.size / seconds
-        t.status = 'Transferring'
+        this.patch(t.id, { percent: p, bps: t.size / seconds, status: 'Transferring' })
         finishWhenReady()
       }, 80)
       const finishWhenReady = () => {
@@ -564,7 +578,7 @@ export class NapsterClient {
           if (nl < 0) return
           const header = buf.slice(0, nl).trim()
           if (/NOT AVAILABLE/i.test(header)) {
-            t.status = 'File not available'
+            this.patch(t.id, { status: 'File not available' })
             window.clearInterval(tick)
             sock.close()
             resolve()
@@ -580,19 +594,21 @@ export class NapsterClient {
       })
       sock.onClose(() => {
         window.clearInterval(tick)
-        if (t.status === 'Complete' || t.status === 'Aborted') {
+        const status = this.row(t.id)?.status ?? t.status
+        if (status === 'Complete' || status === 'Aborted') {
           resolve()
           return
         }
         if (chunks.length) this.finishDownload(t, chunks)
-        else if (t.status === 'Transferring' || t.status === 'Getting header') t.status = 'Timed out'
+        else if (status === 'Transferring' || status === 'Getting header') this.patch(t.id, { status: 'Timed out' })
         resolve()
       })
     })
   }
 
   private finishDownload(t: Transfer, chunks: Uint8Array[]): void {
-    if (t.status === 'Complete') return
+    const row = this.row(t.id) ?? t
+    if (row.status === 'Complete') return
     const total = chunks.reduce((n, c) => n + c.length, 0)
     const bytes = new Uint8Array(total)
     let o = 0
@@ -600,27 +616,29 @@ export class NapsterClient {
       bytes.set(c, o)
       o += c.length
     }
-    const blob = bytes.length > 44 ? new Blob([bytes], { type: 'audio/wav' }) : renderPreviewWav(t.filename)
-    t.blob = blob
-    t.percent = 100
-    t.status = 'Complete'
-    t.bps = t.size / Math.max(0.5, (Date.now() - t.startedAt) / 1000)
+    const blob = bytes.length > 44 ? new Blob([bytes], { type: 'audio/wav' }) : renderPreviewWav(row.filename)
+    this.patch(row.id, {
+      blob,
+      percent: 100,
+      status: 'Complete',
+      bps: row.size / Math.max(0.5, (Date.now() - row.startedAt) / 1000),
+    })
     const item: LibraryItem = {
       id: uid('lib'),
-      filename: t.filename,
-      artist: t.artist,
-      title: t.title,
-      size: t.size,
+      filename: row.filename,
+      artist: row.artist,
+      title: row.title,
+      size: row.size,
       bitrate: 128,
       freq: 44100,
       duration: 200,
-      md5: t.filename,
+      md5: hash32(`${row.filename}|${row.size}`),
       origin: 'download',
       blob,
     }
     app.library = [item, ...app.library]
     this.share(item)
-    app.status = `Download complete: ${t.title || t.filename}`
+    app.status = `Download complete: ${row.title || row.filename}`
   }
 
   private onPrivate(payload: string): void {

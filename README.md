@@ -33,7 +33,7 @@ The choice is stored in `localStorage` as `napster-theme`.
 - Search (artist / title / bitrate), double-click to download
 - Drag listview column edges to resize (double-click a divider to auto-fit)
 - Transfer manager (downloads + simulated uploads)
-- Chat rooms, `/join`, private messages
+- Chat rooms and slash commands (`/join`, `/me`, `/msg`, `/whois`, `/away`, `/topic`, `/history`, `/help`, …)
 - Library + internal player (short original WAV previews)
 - Hot list, browse user, context menus
 - Status bar file / GB / user counts

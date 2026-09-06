@@ -53,6 +53,8 @@
     if (kind === 'browse' && arg) client.browse(arg)
     if (kind === 'hot' && arg) client.addHot(arg)
     if (kind === 'pm' && arg) client.msg(arg, '')
+    if (kind === 'whois' && arg) client.say(`/whois ${arg}`)
+    if (kind === 'ignore' && arg) client.say(`/ignore ${arg}`)
   }
 
   function sendPm(nick: string) {

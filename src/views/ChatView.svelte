@@ -1,5 +1,6 @@
 <script lang="ts">
   import { speedLabel } from '../lib/format'
+  import { sameChannel } from '../lib/hub'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
@@ -26,8 +27,10 @@
       y: e.clientY,
       items: [
         { label: 'Private Message', action: `pm:${nick}` },
+        { label: 'Whois', action: `whois:${nick}` },
         { label: 'Add to Hot List', action: `hot:${nick}` },
         { label: 'Browse Files', action: `browse:${nick}` },
+        { label: 'Ignore', action: `ignore:${nick}` },
       ],
     }
   }
@@ -36,13 +39,15 @@
 <div class="chat">
   <div class="main">
     <div class="chat-log" bind:this={logEl}>
-      {#each app.chat.messages.filter((m) => !m.channel || m.channel === app.chat.channel || m.kind === 'system' || m.kind === 'private') as line (line.id)}
+      {#each app.chat.messages.filter((m) => !m.channel || sameChannel(m.channel, app.chat.channel) || m.kind === 'system' || m.kind === 'private') as line (line.id)}
         {#if line.kind === 'system'}
           <div class="sys">*** {line.text}</div>
         {:else if line.kind === 'private'}
           <div class="priv">*{line.nick}* {line.text}</div>
+        {:else if line.kind === 'action'}
+          <div class="act" title={line.msgid ?? ''}>* {line.nick} {line.text}</div>
         {:else}
-          <div class:me={line.nick === app.nick}>
+          <div class:me={line.nick === app.nick} title={line.msgid ?? ''}>
             &lt;{line.nick}&gt; {line.text}
           </div>
         {/if}
@@ -68,7 +73,7 @@
     </aside>
   </div>
   <div class="composer">
-    <WinInput bind:value={app.chat.input} width="100%" onenter={send} placeholder="Type a message or /join OpenNap" />
+    <WinInput bind:value={app.chat.input} width="100%" onenter={send} placeholder="message, /help /join /me /msg /whois /away /topic /history" />
     <WinButton label="Send" onclick={send} disabled={!app.connected} />
     <span class="ch">#{app.chat.channel}</span>
     <WinButton label="Join" small onclick={() => (app.dialogs.join = true)} disabled={!app.connected} />
@@ -117,6 +122,10 @@
     grid-template-columns: 1fr auto auto auto;
     gap: 6px;
     align-items: center;
+  }
+  .act {
+    color: #008080;
+    font-style: italic;
   }
   .ch {
     min-width: 90px;

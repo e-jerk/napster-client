@@ -22,6 +22,8 @@ type HubUser = {
   files: Map<string, SharedFile>
   channels: Set<string>
   hotlist: Set<string>
+  ignore: Set<string>
+  away: string
 }
 
 function ipToInt(ip: string): number {
@@ -65,6 +67,7 @@ export class NapsterHub {
   readonly port = 8888
   private users = new Map<string, HubUser>()
   private bySocket = new Map<VirtualSocket, HubUser>()
+  private topics = new Map<string, string>(CHANNELS.map((c) => [c.name.toLowerCase(), c.topic]))
   private statsTimer: ReturnType<typeof setInterval> | null = null
 
   constructor(private tcp: VirtualTcp) {}
@@ -147,6 +150,58 @@ export class NapsterHub {
       case Msg.LIST_CHANNELS:
         if (user) this.listChannels(user)
         break
+      case Msg.EMOTE:
+        if (user) this.pub(user, payload, true)
+        break
+      case Msg.WHOIS:
+        if (user) this.whois(user, payload.trim())
+        break
+      case Msg.TOPIC:
+        if (user) this.topic(user, payload)
+        break
+      case Msg.MOTD:
+        if (user) this.motd(user)
+        break
+      case Msg.PING_SERVER:
+        send(sock, Msg.PONG, this.host)
+        break
+      case Msg.PING:
+        if (user) this.ping(user, payload.trim())
+        break
+      case Msg.PONG: {
+        const dest = this.users.get(payload.trim().toLowerCase())
+        if (user && dest) send(dest.socket, Msg.PONG, user.nick)
+        break
+      }
+      case Msg.SERVER_STATS:
+        if (user) {
+          const s = this.stats()
+          send(user.socket, Msg.SERVER_STATS, `${s.users} ${s.files} ${(s.bytes / (1024 * 1024 * 1024)).toFixed(1)}`)
+        }
+        break
+      case Msg.AWAY:
+        if (user) {
+          user.away = payload.trim()
+          send(sock, Msg.AWAY_OUT, user.away ? `${user.nick} ${user.away}` : user.nick)
+        }
+        break
+      case Msg.NAMES_REQ:
+        if (user) this.names(user, payload.trim())
+        break
+      case Msg.IGNORE:
+        if (user && payload.trim()) user.ignore.add(payload.trim().toLowerCase())
+        break
+      case Msg.UNIGNORE:
+        if (user) user.ignore.delete(payload.trim().toLowerCase())
+        break
+      case Msg.IGNORE_LIST:
+        if (user) {
+          for (const n of user.ignore) send(sock, Msg.IGNORE_ENTRY, n)
+        }
+        break
+      case Msg.CLEAR_IGNORE:
+        if (user) user.ignore.clear()
+        break
       default:
         send(sock, Msg.ERROR, `unknown message ${type}`)
     }
@@ -177,6 +232,8 @@ export class NapsterHub {
       files: new Map(),
       channels: new Set(),
       hotlist: new Set(),
+      ignore: new Set(),
+      away: '',
     }
     this.users.set(nick.toLowerCase(), user)
     this.bySocket.set(sock, user)
@@ -274,6 +331,7 @@ export class NapsterHub {
       send(user.socket, Msg.ERROR, `${nick} is not online`)
       return
     }
+    if (other.ignore.has(user.nick.toLowerCase())) return
     send(other.socket, Msg.PRIVATE, `${user.nick} ${text}`)
   }
 
@@ -307,7 +365,7 @@ export class NapsterHub {
     user.channels.add(name.toLowerCase())
     send(user.socket, Msg.JOIN_ACK, name)
     const def = CHANNELS.find((c) => c.name.toLowerCase() === name.toLowerCase())
-    send(user.socket, Msg.TOPIC, `${def?.name ?? name} ${def?.topic ?? 'no topic'}`)
+    send(user.socket, Msg.TOPIC, `${def?.name ?? name} ${this.topics.get(name.toLowerCase()) ?? def?.topic ?? 'no topic'}`)
     for (const other of this.users.values()) {
       if (!other.channels.has(name.toLowerCase())) continue
       send(user.socket, Msg.CHANNEL_USER, `${def?.name ?? name} ${other.nick} ${other.files.size} ${other.speed}`)
@@ -327,17 +385,80 @@ export class NapsterHub {
     }
   }
 
-  private pub(user: HubUser, payload: string): void {
+  private pub(user: HubUser, payload: string, emote = false): void {
     const space = payload.indexOf(' ')
     if (space < 0) return
     const channel = payload.slice(0, space)
     const text = payload.slice(space + 1)
     const key = channel.replace(/^#/, '').toLowerCase()
     if (!user.channels.has(key)) this.join(user, channel)
-    const shown = channel.replace(/^#/, '')
+    const shown = CHANNELS.find((c) => c.name.toLowerCase() === key)?.name ?? channel.replace(/^#/, '')
+    const tag = emote ? Msg.EMOTE : Msg.PUBLIC
     for (const other of this.users.values()) {
-      if (other.channels.has(key)) send(other.socket, Msg.PUBLIC, `${shown} ${user.nick} ${text}`)
+      if (!other.channels.has(key)) continue
+      if (other.ignore.has(user.nick.toLowerCase())) continue
+      send(other.socket, tag, `${shown} ${user.nick} ${text}`)
     }
+  }
+
+  private whois(user: HubUser, nick: string): void {
+    const other = this.users.get(nick.toLowerCase())
+    if (!other) {
+      send(user.socket, Msg.NOSUCH, `user ${nick} is not available`)
+      return
+    }
+    const chans = [...other.channels].join(' ')
+    const status = other.away ? 'Away' : 'Active'
+    send(
+      user.socket,
+      Msg.WHOIS_ACK,
+      `${other.nick} "User" 0 " ${chans}" "${status}" ${other.files.size} 0 0 ${other.speed} "napster v2.0 BETA 10.3"`,
+    )
+    if (other.away) send(user.socket, Msg.AWAY_OUT, `${other.nick} ${other.away}`)
+  }
+
+  private topic(user: HubUser, payload: string): void {
+    const trimmed = payload.trim()
+    const space = trimmed.indexOf(' ')
+    const raw = space < 0 ? trimmed : trimmed.slice(0, space)
+    const text = space < 0 ? '' : trimmed.slice(space + 1)
+    const key = raw.replace(/^#/, '').toLowerCase()
+    if (!key) return
+    const shown = CHANNELS.find((c) => c.name.toLowerCase() === key)?.name ?? raw.replace(/^#/, '')
+    if (text) {
+      this.topics.set(key, text)
+      for (const other of this.users.values()) {
+        if (other.channels.has(key)) send(other.socket, Msg.TOPIC, `${shown} ${text}`)
+      }
+      return
+    }
+    send(user.socket, Msg.TOPIC, `${shown} ${this.topics.get(key) ?? 'no topic'}`)
+  }
+
+  private motd(user: HubUser): void {
+    for (const line of MOTD) send(user.socket, Msg.MOTD, line)
+  }
+
+  private ping(user: HubUser, nick: string): void {
+    const dest = this.users.get(nick.toLowerCase())
+    if (!dest) {
+      send(user.socket, Msg.NOSUCH, `user ${nick} is not available`)
+      return
+    }
+    send(dest.socket, Msg.PING, user.nick)
+  }
+
+  private names(user: HubUser, channel: string): void {
+    const name = (channel || [...user.channels][0] || '').replace(/^#/, '')
+    if (!name) {
+      send(user.socket, Msg.NAMES_END)
+      return
+    }
+    const shown = CHANNELS.find((c) => c.name.toLowerCase() === name.toLowerCase())?.name ?? name
+    for (const other of this.users.values()) {
+      if (other.channels.has(name.toLowerCase())) send(user.socket, Msg.NAMES, `${shown} ${other.nick}`)
+    }
+    send(user.socket, Msg.NAMES_END)
   }
 
   private listChannels(user: HubUser): void {

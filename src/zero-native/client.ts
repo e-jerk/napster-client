@@ -11,6 +11,38 @@ import { connectWss, type FrameSock } from './wss'
 
 const decoder = new TextDecoder()
 
+const HELP = [
+  '/join [channel]   join a room (no name opens the dialog)',
+  '/part [channel]   leave the current room',
+  '/leave            same as /part',
+  '/msg nick [text]  private message (no text opens a window)',
+  '/query nick [text]  same as /msg',
+  '/me text          action in the current channel',
+  '/whois nick       user information',
+  '/away [message]   set away, or clear with no message',
+  '/topic [text]     show or set the channel topic',
+  '/list             list channels',
+  '/names [channel]  list users in a channel',
+  '/history [query]  recent channel messages',
+  '/browse nick      browse shared files',
+  '/hotlist nick     add to the hot list',
+  '/ignore [nick]    ignore a nick, or list ignores',
+  '/unignore nick    stop ignoring',
+  '/motd             message of the day',
+  '/ping [nick]      ping the hub or a user',
+  '/stats            hub user / file counts',
+  '/key [nick]       fetch a public key',
+  '/reply [msgid] text  reply to a message',
+  '/react [msgid] emoji  react to a message',
+  '/redact [msgid]   delete a message you sent',
+  '/edit msgid text  edit a message you sent',
+  '/search [query]   open search',
+  '/clear            clear this chat log',
+  '/quit             disconnect',
+  '/help             this list',
+  'Prefix a line with // to send it as channel text.',
+]
+
 function log(dir: 'in' | 'out' | 'peer', type: number, payload: string): void {
   app.packets.unshift({
     id: uid('pkt'),
@@ -30,7 +62,7 @@ function parseSearchHit(payload: string): SearchHit | null {
   const filename = q.quoted
   const base = filename.split('\\').pop() ?? filename
   const dash = base.replace(/\.mp3$/i, '').split(' - ')
-  return {
+    return {
     id: uid('hit'),
     filename,
     md5: p[0] ?? '',
@@ -47,6 +79,71 @@ function parseSearchHit(payload: string): SearchHit | null {
     artist: dash.length > 1 ? (dash[0] ?? '') : '',
     title: dash.length > 1 ? dash.slice(1).join(' - ') : base.replace(/\.mp3$/i, ''),
   }
+}
+
+function splitFields(payload: string): string[] {
+  const out: string[] = []
+  let i = 0
+  while (i < payload.length) {
+    while (payload[i] === ' ') i += 1
+    if (i >= payload.length) break
+    if (payload[i] === '"') {
+      i += 1
+      let s = ''
+      while (i < payload.length && payload[i] !== '"') {
+        s += payload[i]
+        i += 1
+      }
+      if (i < payload.length) i += 1
+      out.push(s.trim())
+    } else {
+      const start = i
+      while (i < payload.length && payload[i] !== ' ') i += 1
+      out.push(payload.slice(start, i))
+    }
+  }
+  return out
+}
+
+function parseChannelEntry(payload: string): { name: string; users: number; topic: string } | null {
+  const m = /^(\S+)\s+(\d+)(?:\s+(\d+))?\s+(.*)$/.exec(payload.trim())
+  if (!m) return null
+  let topic = (m[4] ?? '').trim()
+  if (topic.startsWith('"') && topic.endsWith('"') && topic.length >= 2) topic = topic.slice(1, -1)
+  return { name: m[1] ?? '', users: Number(m[2]), topic }
+}
+
+function parseHistory(payload: string): { kind: string; target: string; msgid: string; ts: number; nick: string; text: string } | null {
+  const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\S+)(?:\s(.*))?$/.exec(payload)
+  if (!m) return null
+  return {
+    kind: m[1] ?? '',
+    target: m[2] ?? '',
+    msgid: m[3] ?? '',
+    ts: Number(m[4] ?? 0),
+    nick: m[5] ?? '',
+    text: m[6] ?? '',
+  }
+}
+
+function formatWhois(payload: string): string {
+  const f = splitFields(payload)
+  if (!f[0]) return payload
+  const nick = f[0]
+  const level = f[1] || 'user'
+  const online = f[2] ? `${f[2]}s` : '?'
+  const chans = (f[3] || '').trim() || '(none)'
+  const status = f[4] || 'Active'
+  const files = f[5] || '0'
+  const client = f[9] || ''
+  const extra = client ? `, ${client}` : ''
+  return `${nick} is ${level}, ${status}, on ${online}, channels: ${chans}, ${files} files${extra}`
+}
+
+function firstWord(s: string): { head: string; rest: string } {
+  const sp = s.search(/\s/)
+  if (sp < 0) return { head: s, rest: '' }
+  return { head: s.slice(0, sp), rest: s.slice(sp + 1).trim() }
 }
 
 export class NapsterClient {
@@ -188,50 +285,36 @@ export class NapsterClient {
 
   join(channel: string): void {
     if (!this.sock) return
-    const name = channel.replace(/^#/, '')
+    const name = channel.replace(/^#/, '').trim()
+    if (!name) {
+      app.dialogs.join = true
+      return
+    }
     log('out', Msg.JOIN, name)
     send(this.sock, Msg.JOIN, name)
   }
 
   part(channel: string): void {
     if (!this.sock) return
-    send(this.sock, Msg.PART, channel)
-    log('out', Msg.PART, channel)
+    let name = channel.trim() || app.chat.channel
+    if (app.hub === 'wss' && name && name[0] !== '#' && name[0] !== '&') name = `#${name}`
+    send(this.sock, Msg.PART, name)
+    log('out', Msg.PART, name)
   }
 
   say(text: string): void {
     if (!this.sock) return
     const raw = text.trim()
     if (!raw) return
-    if (raw.startsWith('/join ')) {
-      this.join(raw.slice(6))
+    if (raw.startsWith('//')) {
+      this.pub(raw.slice(1))
       return
     }
-    if (raw.startsWith('/part')) {
-      this.part(app.chat.channel)
+    if (raw.startsWith('/')) {
+      this.command(raw.slice(1))
       return
     }
-    if (raw.startsWith('/msg ')) {
-      const rest = raw.slice(5)
-      const sp = rest.indexOf(' ')
-      if (sp > 0) this.msg(rest.slice(0, sp), rest.slice(sp + 1))
-      return
-    }
-    if (raw.startsWith('/browse ')) {
-      this.browse(raw.slice(8).trim())
-      return
-    }
-    if (raw.startsWith('/hotlist ')) {
-      this.addHot(raw.slice(9).trim())
-      return
-    }
-    if (raw === '/clear') {
-      app.chat.messages = []
-      return
-    }
-    const payload = `${app.chat.channel} ${raw}`
-    log('out', Msg.SEND_PUB, payload)
-    send(this.sock, Msg.SEND_PUB, payload)
+    this.pub(raw)
   }
 
   msg(nick: string, text: string): void {
@@ -282,6 +365,222 @@ export class NapsterClient {
     log('out', Msg.LIST_CHANNELS, '')
   }
 
+  private out(type: number, payload = ''): void {
+    if (!this.sock) return
+    log('out', type, payload)
+    send(this.sock, type, payload)
+  }
+
+  private note(text: string): void {
+    app.chat.messages.push({
+      id: uid('sys'),
+      kind: 'system',
+      text,
+      at: Date.now(),
+    })
+  }
+
+  private pub(text: string): void {
+    const payload = `${app.chat.channel} ${text}`
+    this.out(Msg.SEND_PUB, payload)
+  }
+
+  private chanName(name = ''): string {
+    const raw = name.trim() || app.chat.channel
+    if (app.hub === 'wss' && raw && raw[0] !== '#' && raw[0] !== '&') return `#${raw}`
+    return raw
+  }
+
+  private ignored(nick: string): boolean {
+    const n = nick.toLowerCase()
+    return app.ignore.some((x) => x.toLowerCase() === n)
+  }
+
+  private rememberMsgid(id: string | undefined): void {
+    if (id) app.chat.lastMsgid = id
+  }
+
+  private demoOnly(label: string): boolean {
+    if (app.hub !== 'demo') return false
+    this.note(`${label} needs a live OpenNAP hub`)
+    return true
+  }
+
+  private command(line: string): void {
+    const { head, rest } = firstWord(line)
+    const cmd = head.toLowerCase()
+    switch (cmd) {
+      case 'help':
+      case '?':
+        for (const row of HELP) this.note(row)
+        return
+      case 'join':
+        if (!rest) {
+          app.dialogs.join = true
+          return
+        }
+        this.join(rest)
+        return
+      case 'part':
+      case 'leave':
+        this.part(rest)
+        return
+      case 'msg':
+      case 'query': {
+        const n = firstWord(rest)
+        if (!n.head) {
+          this.note('usage: /msg nick [text]')
+          return
+        }
+        this.msg(n.head, n.rest)
+        return
+      }
+      case 'me':
+        if (!rest) {
+          this.note('usage: /me text')
+          return
+        }
+        this.out(Msg.EMOTE, `${this.chanName()} ${rest}`)
+        return
+      case 'whois':
+        if (!rest) {
+          this.note('usage: /whois nick')
+          return
+        }
+        this.out(Msg.WHOIS, rest)
+        return
+      case 'away':
+        this.out(Msg.AWAY, rest)
+        return
+      case 'topic':
+        this.out(Msg.TOPIC, rest ? `${this.chanName()} ${rest}` : this.chanName())
+        return
+      case 'list':
+        this.listChannels()
+        app.dialogs.join = true
+        return
+      case 'names':
+        this.out(Msg.NAMES_REQ, this.chanName(rest))
+        return
+      case 'history': {
+        if (this.demoOnly('/history')) return
+        const q = rest || `LATEST ${this.chanName()} * 50`
+        this.out(Msg.HISTORY, q.includes(' ') || q.startsWith('#') || q.startsWith('&') ? q : `LATEST ${this.chanName(q)} * 50`)
+        return
+      }
+      case 'browse':
+        if (!rest) {
+          this.note('usage: /browse nick')
+          return
+        }
+        this.browse(rest)
+        return
+      case 'hotlist':
+      case 'hot':
+        if (!rest) {
+          this.note('usage: /hotlist nick')
+          return
+        }
+        this.addHot(rest)
+        return
+      case 'ignore':
+        if (!rest) {
+          if (app.hub === 'wss') this.out(Msg.IGNORE_LIST)
+          if (!app.ignore.length) this.note('ignore list is empty')
+          else this.note(`ignoring: ${app.ignore.join(', ')}`)
+          return
+        }
+        if (!app.ignore.some((n) => n.toLowerCase() === rest.toLowerCase())) app.ignore = [...app.ignore, rest]
+        this.out(Msg.IGNORE, rest)
+        this.note(`ignoring ${rest}`)
+        return
+      case 'unignore':
+        if (!rest) {
+          this.note('usage: /unignore nick')
+          return
+        }
+        app.ignore = app.ignore.filter((n) => n.toLowerCase() !== rest.toLowerCase())
+        this.out(Msg.UNIGNORE, rest)
+        this.note(`no longer ignoring ${rest}`)
+        return
+      case 'motd':
+        this.out(Msg.MOTD)
+        return
+      case 'ping':
+        if (!rest) this.out(Msg.PING_SERVER)
+        else this.out(Msg.PING, rest)
+        return
+      case 'stats':
+        this.out(Msg.SERVER_STATS)
+        return
+      case 'key':
+        if (this.demoOnly('/key')) return
+        this.out(Msg.KEY, rest ? `GET ${rest}` : 'GET')
+        return
+      case 'reply': {
+        const n = firstWord(rest)
+        const id = n.rest ? n.head : app.chat.lastMsgid
+        const body = n.rest || n.head
+        if (!id || !body) {
+          this.note('usage: /reply [msgid] text')
+          return
+        }
+        this.pub(body)
+        return
+      }
+      case 'react': {
+        if (this.demoOnly('/react')) return
+        const n = firstWord(rest)
+        const id = n.rest ? n.head : app.chat.lastMsgid
+        const emoji = n.rest || n.head || '+1'
+        if (!id) {
+          this.note('usage: /react [msgid] emoji')
+          return
+        }
+        this.out(Msg.TAGMSG, `REACT ${emoji} ${id}`)
+        return
+      }
+      case 'redact': {
+        if (this.demoOnly('/redact')) return
+        const id = rest || app.chat.lastMsgid
+        if (!id) {
+          this.note('usage: /redact [msgid]')
+          return
+        }
+        this.out(Msg.REDACT, id)
+        return
+      }
+      case 'edit': {
+        if (this.demoOnly('/edit')) return
+        const n = firstWord(rest)
+        if (!n.head || !n.rest) {
+          this.note('usage: /edit msgid text')
+          return
+        }
+        this.out(Msg.EDIT, `${n.head} ${n.rest}`)
+        return
+      }
+      case 'search':
+        app.view = 'search'
+        if (rest) {
+          app.search.artist = rest
+          app.search.title = ''
+          this.search()
+        }
+        return
+      case 'clear':
+        app.chat.messages = []
+        return
+      case 'quit':
+      case 'disconnect':
+        this.disconnect()
+        this.note('disconnected')
+        return
+      default:
+        this.note(`unknown command /${cmd} — try /help`)
+    }
+  }
+
   share(file: SharedFile): void {
     if (!this.sock) return
     const line = shareLine(file)
@@ -304,10 +603,13 @@ export class NapsterClient {
         app.error = payload
         app.status = payload
         if (app.phase === 'connecting') app.phase = 'login'
+        else this.note(payload)
         this.failPending(payload)
         break
       case Msg.NOSUCH:
+      case Msg.FAIL:
         app.status = payload
+        this.note(payload)
         break
       case Msg.MOTD:
         app.chat.messages.push({
@@ -356,12 +658,12 @@ export class NapsterClient {
         const sp = payload.indexOf(' ')
         const ch = sp < 0 ? payload : payload.slice(0, sp)
         const topic = sp < 0 ? '' : payload.slice(sp + 1)
-        app.chat.topic = topic
+        if (!ch || sameChannel(ch, app.chat.channel) || !app.chat.channel) app.chat.topic = topic
         app.chat.messages.push({
           id: uid('topic'),
           kind: 'system',
           channel: ch,
-          text: `Topic: ${topic}`,
+          text: `Topic for ${ch}: ${topic}`,
           at: Date.now(),
         })
         break
@@ -393,6 +695,14 @@ export class NapsterClient {
       }
       case Msg.CHANNEL_USER_END:
         break
+      case Msg.PART: {
+        const name = payload.trim()
+        if (name && !name.includes(' ') && sameChannel(name, app.chat.channel)) {
+          app.chat.users = []
+          this.note(`You have left channel ${name}`)
+        }
+        break
+      }
       case Msg.CHANNEL_PART: {
         const [ch, nick] = payload.split(/\s+/)
         if (sameChannel(ch ?? '', app.chat.channel)) {
@@ -408,14 +718,16 @@ export class NapsterClient {
         }
         break
       }
-      case Msg.PUBLIC: {
+      case Msg.PUBLIC:
+      case Msg.EMOTE: {
         const parts = payload.split(' ')
         const channel = parts.shift() ?? ''
         const nick = parts.shift() ?? ''
         const text = parts.join(' ')
+        if (this.ignored(nick)) break
         app.chat.messages.push({
-          id: uid('pub'),
-          kind: 'public',
+          id: uid(type === Msg.EMOTE ? 'me' : 'pub'),
+          kind: type === Msg.EMOTE ? 'action' : 'public',
           channel,
           nick,
           text,
@@ -424,19 +736,100 @@ export class NapsterClient {
         break
       }
       case Msg.CHANNEL_ENTRY: {
-        const sp1 = payload.indexOf(' ')
-        const name = payload.slice(0, sp1)
-        const rest = payload.slice(sp1 + 1)
-        const sp2 = rest.indexOf(' ')
-        const users = Number(rest.slice(0, sp2))
-        const topic = rest.slice(sp2 + 1)
-        const existing = app.channels.find((c) => c.name === name)
+        const row = parseChannelEntry(payload)
+        if (!row) break
+        const existing = app.channels.find((c) => sameChannel(c.name, row.name))
         if (existing) {
-          existing.users = users
-          existing.topic = topic
-        } else app.channels.push({ name, users, topic })
+          existing.users = row.users
+          existing.topic = row.topic
+          existing.name = row.name
+        } else app.channels.push({ name: row.name, users: row.users, topic: row.topic })
         break
       }
+      case Msg.WHOIS_ACK:
+        this.note(formatWhois(payload))
+        break
+      case Msg.WHOWAS: {
+        const f = splitFields(payload)
+        this.note(`${f[0] ?? payload} was ${f[1] || 'user'} (last seen ${f[2] || '?'})`)
+        break
+      }
+      case Msg.AWAY_OUT: {
+        const { head, rest } = firstWord(payload.trim())
+        this.note(rest ? `${head} is away: ${rest}` : `${head} is back`)
+        break
+      }
+      case Msg.PING:
+        this.out(Msg.PONG, payload.trim())
+        break
+      case Msg.PONG:
+        this.note(payload.trim() ? `pong from ${payload.trim()}` : 'pong')
+        app.status = payload.trim() ? `pong from ${payload.trim()}` : 'pong'
+        break
+      case Msg.HISTORY_LINE: {
+        const row = parseHistory(payload)
+        if (!row || this.ignored(row.nick)) break
+        this.rememberMsgid(row.msgid)
+        const kind = row.kind === 'emote' ? 'action' : row.kind === 'priv' ? 'private' : 'public'
+        app.chat.messages.push({
+          id: uid('hist'),
+          kind,
+          channel: row.target,
+          nick: row.nick,
+          text: row.kind === 'priv' ? `(private) ${row.text}` : row.text,
+          at: row.ts ? row.ts * 1000 : Date.now(),
+          msgid: row.msgid,
+        })
+        break
+      }
+      case Msg.HISTORY_END:
+        this.note(payload.trim() ? `end of history ${payload}` : 'end of history')
+        break
+      case Msg.KEY_OUT:
+        this.note(`key ${payload}`)
+        break
+      case Msg.IGNORE_ENTRY:
+        if (payload && !app.ignore.some((n) => n.toLowerCase() === payload.toLowerCase())) {
+          app.ignore = [...app.ignore, payload]
+        }
+        this.note(`ignoring ${payload}`)
+        break
+      case Msg.ALREADY_IGNORED:
+        this.note(`already ignoring ${payload}`)
+        break
+      case Msg.NOT_IGNORED:
+        this.note(`not ignoring ${payload}`)
+        break
+      case Msg.NAMES: {
+        const [ch, nick] = payload.split(/\s+/)
+        if (!nick || !sameChannel(ch ?? '', app.chat.channel)) break
+        if (!app.chat.users.some((u) => u.nick === nick)) {
+          app.chat.users = [...app.chat.users, { nick, files: 0, speed: 0 as SpeedId, op: false }].sort((a, b) =>
+            a.nick.localeCompare(b.nick),
+          )
+        }
+        break
+      }
+      case Msg.NAMES_END:
+        break
+      case Msg.REDACT_OUT: {
+        const id = firstWord(payload)
+        const from = firstWord(id.rest)
+        const line = app.chat.messages.find((m) => m.msgid === id.head)
+        if (line) line.text = ''
+        this.note(`${from.head || 'someone'} redacted a message`)
+        break
+      }
+      case Msg.EDIT_OUT: {
+        const id = firstWord(payload)
+        const from = firstWord(id.rest)
+        const line = app.chat.messages.find((m) => m.msgid === id.head)
+        if (line) line.text = from.rest
+        break
+      }
+      case Msg.TAGMSG_OUT:
+        this.note(payload)
+        break
       case Msg.USER_ONLINE: {
         const [nick, speed, files] = payload.split(/\s+/)
         const row = app.hotlist.find((h) => h.nick.toLowerCase() === (nick ?? '').toLowerCase())
@@ -680,6 +1073,7 @@ export class NapsterClient {
     const sp = payload.indexOf(' ')
     const nick = payload.slice(0, sp)
     const text = payload.slice(sp + 1)
+    if (this.ignored(nick)) return
     this.ensurePm(nick)
     const thread = app.pms.find((p) => p.nick.toLowerCase() === nick.toLowerCase())
     thread?.messages.push({

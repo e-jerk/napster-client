@@ -71,6 +71,7 @@ export type ChatLine = {
   nick?: string
   text: string
   at: number
+  msgid?: string
 }
 
 export type ChannelUser = {

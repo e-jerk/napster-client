@@ -5,17 +5,38 @@
 </script>
 
 <div class="theme-switch" class:compact role="group" aria-label="Window style">
-  <button type="button" class:on={app.theme === 'windows'} onclick={() => setTheme('windows')}>Windows</button>
-  <button type="button" class:on={app.theme === 'mac'} onclick={() => setTheme('mac')}>Mac</button>
+  <button
+    type="button"
+    class:on={app.theme === 'windows'}
+    onpointerdown={(e) => {
+      e.stopPropagation()
+      setTheme('windows')
+    }}
+  >
+    Windows
+  </button>
+  <button
+    type="button"
+    class:on={app.theme === 'mac'}
+    onpointerdown={(e) => {
+      e.stopPropagation()
+      setTheme('mac')
+    }}
+  >
+    Mac
+  </button>
 </div>
 
 <style>
   .theme-switch {
     display: flex;
+    position: relative;
+    z-index: 23;
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--sh);
     background: var(--window);
+    pointer-events: auto;
   }
 
   .theme-switch button {

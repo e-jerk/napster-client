@@ -146,8 +146,11 @@ button {
 
 .field {
   background: var(--window);
+  color: #000;
   border: 0;
   padding: 3px 4px;
+  user-select: text;
+  -webkit-user-select: text;
   box-shadow:
     inset 1px 1px 0 var(--sh),
     inset -1px -1px 0 var(--hl),
@@ -214,6 +217,15 @@ select.field {
     inset 1px 1px 0 #dfdfdf,
     inset -2px -2px 0 var(--sh),
     inset 2px 2px 0 var(--hl);
+}
+
+/* Keep window chrome above modal sheets so Windows | Mac still works. */
+.window > .caption,
+.window > .mac-title,
+.window > .menubar,
+.window > .toolbar {
+  position: relative;
+  z-index: 22;
 }
 
 .menubar {

@@ -73,7 +73,7 @@
       <WinInput bind:value={app.search.artist} width="100%" onenter={() => client.search()} />
     </label>
     <label>
-      <span>Title / Song</span>
+      <span>Title / Filename</span>
       <WinInput bind:value={app.search.title} width="100%" onenter={() => client.search()} />
     </label>
     <label class="narrow">

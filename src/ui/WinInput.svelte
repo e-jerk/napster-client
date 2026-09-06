@@ -23,6 +23,8 @@
   {placeholder}
   bind:value
   style:width
+  autocomplete="off"
+  spellcheck="false"
   onkeydown={(e) => {
     if (e.key === 'Enter') onenter?.()
   }}

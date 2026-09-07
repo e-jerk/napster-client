@@ -1,6 +1,6 @@
-Pixel-perfect SVGs traced from napster.exe (BETA 10.3) RT_ICON / RT_BITMAP.
-Icons keep the original 16-color palette and AND-mask transparency.
-Source executable is not bundled.
+Pixel-perfect SVGs traced from napster.exe (BETA 10.3) RT_ICON / RT_BITMAP
+live in src/icons so the single-file build can inline them. The EXE is
+not bundled.
 
 app-16.svg
 app-32.svg

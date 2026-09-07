@@ -367,6 +367,9 @@ select.field {
 .tool .nap-icon {
   width: 32px;
   height: 32px;
+  flex: 0 0 32px;
+  object-fit: contain;
+  object-position: center;
 }
 
 .statusbar {
@@ -530,13 +533,26 @@ select.field {
   width: 32px;
   height: 32px;
   margin: 0 auto 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .desktop-icon .glyph img,
+.desktop-icon .glyph svg,
 .task-ico,
 .dock-item img {
+  display: block;
+  object-fit: contain;
+  object-position: center;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+}
+
+.task-ico {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }
 
 .task-btn {

@@ -1,6 +1,7 @@
 /**
  * Pixel-perfect SVGs traced from napster.exe (BETA 10.3) RT_GROUP_ICON /
- * RT_BITMAP. Files live in /icons. The EXE is not bundled.
+ * RT_BITMAP. Files in src/icons are inlined as data URLs so the
+ * single-file OpenNAP build does not fetch /icons from the hub.
  */
 import type { AppView } from './types'
 
@@ -60,7 +61,19 @@ export const ICON_SOURCES: Record<string, string> = {
   cdnow: 'RT_BITMAP 452 (50×12)',
 }
 
+const files = import.meta.glob('../icons/*.svg', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>
+
+const urls = new Map<string, string>()
+for (const [path, svg] of Object.entries(files)) {
+  const slash = path.lastIndexOf('/')
+  const name = path.slice(slash + 1, -'.svg'.length)
+  urls.set(name, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`)
+}
+
 export function iconUrl(name: string): string {
-  const base = import.meta.env.BASE_URL ?? './'
-  return `${base}icons/${name}.svg`
+  return urls.get(name) ?? ''
 }

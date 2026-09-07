@@ -19,6 +19,7 @@
   src={iconUrl(name)}
   width={size}
   height={size}
+  style={`--nap-size:${size}px`}
   {alt}
   title={title}
   draggable="false"
@@ -27,7 +28,11 @@
 <style>
   .nap-icon {
     display: block;
-    flex: 0 0 auto;
+    width: var(--nap-size, 16px);
+    height: var(--nap-size, 16px);
+    flex: 0 0 var(--nap-size, 16px);
+    object-fit: contain;
+    object-position: center;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     user-select: none;

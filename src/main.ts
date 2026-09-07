@@ -1,7 +1,11 @@
 import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
+import { iconUrl } from './lib/icons'
 import { applyThemeAttr, readTheme } from './lib/theme'
+
+const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+if (icon) icon.href = iconUrl('app-32')
 
 const target = document.getElementById('app')
 

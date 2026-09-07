@@ -1,5 +1,6 @@
 <script lang="ts">
   import { basename, formatSize, speedLabel } from '../lib/format'
+  import { iconUrl } from '../lib/icons'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
@@ -80,7 +81,7 @@
 
 <div class="xfer">
   <div class="pane">
-    <div class="label"><img class="pane-ico" src="/icons/download.svg" width="16" height="16" alt="" /> Downloads</div>
+    <div class="label"><img class="pane-ico" src={iconUrl('download')} width="16" height="16" alt="" /> Downloads</div>
     <WinListView
       persistKey="downloads"
       columns={downloadCols}
@@ -91,7 +92,7 @@
     />
   </div>
   <div class="pane">
-    <div class="label"><img class="pane-ico" src="/icons/upload.svg" width="16" height="16" alt="" /> Uploads</div>
+    <div class="label"><img class="pane-ico" src={iconUrl('upload')} width="16" height="16" alt="" /> Uploads</div>
     <WinListView
       persistKey="uploads"
       columns={uploadCols}

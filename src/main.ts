@@ -3,10 +3,15 @@ import './app.css'
 import App from './App.svelte'
 import { applyThemeAttr, readTheme } from './lib/theme'
 
-applyThemeAttr(readTheme())
+const target = document.getElementById('app')
 
-const app = mount(App, {
-  target: document.getElementById('app')!,
-})
-
-export default app
+try {
+  applyThemeAttr(readTheme())
+  if (!target) throw new Error('Missing #app')
+  mount(App, { target })
+} catch (err) {
+  const msg = err instanceof Error ? err.stack ?? err.message : String(err)
+  if (target) {
+    target.innerHTML = `<pre style="margin:0;padding:16px;background:#000080;color:#fff;font:12px/1.4 Consolas,monospace;white-space:pre-wrap">Napster failed to start:\n\n${msg.replace(/</g, '&lt;')}</pre>`
+  }
+}

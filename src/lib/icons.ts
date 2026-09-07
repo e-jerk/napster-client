@@ -61,5 +61,6 @@ export const ICON_SOURCES: Record<string, string> = {
 }
 
 export function iconUrl(name: string): string {
-  return `/icons/${name}.svg`
+  const base = import.meta.env.BASE_URL ?? './'
+  return `${base}icons/${name}.svg`
 }

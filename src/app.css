@@ -364,7 +364,7 @@ select.field {
     inset -1px -1px 0 var(--hl);
 }
 
-.tool :global(.nap-icon) {
+.tool .nap-icon {
   width: 32px;
   height: 32px;
 }

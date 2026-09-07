@@ -11,9 +11,8 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: true,
     cors: true,
-    // Preview iframes proxy HTTP but often drop the HMR websocket, which
-    // leaves the page stuck on a blank #app. Disable HMR in this setup.
     hmr: false,
+    headers: { 'Cache-Control': 'no-store' },
   },
   preview: {
     host: '0.0.0.0',
@@ -21,5 +20,6 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: true,
     cors: true,
+    headers: { 'Cache-Control': 'no-store' },
   },
 })

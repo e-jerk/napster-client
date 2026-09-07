@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cmdAbout, cmdConnect, cmdDisconnect, cmdExit, cmdView } from '../lib/commands'
+  import { iconUrl } from '../lib/icons'
   import { app, setTheme } from '../lib/session.svelte'
   import AppMenus from '../ui/AppMenus.svelte'
   import ThemeSwitch from '../ui/ThemeSwitch.svelte'
@@ -134,7 +135,7 @@
     </button>
     <button class="desktop-icon nap" ondblclick={openNapster}>
       <div class="glyph">
-        <img src="/icons/app-32.svg" width="32" height="32" alt="" draggable="false" />
+        <img src={iconUrl('app-32')} width="32" height="32" alt="" draggable="false" />
       </div>
       Napster
     </button>
@@ -160,7 +161,7 @@
     </button>
     <button class="desktop-icon" style="position:absolute;left:16px;top:176px" ondblclick={openNapster}>
       <div class="glyph">
-        <img src="/icons/app-32.svg" width="32" height="32" alt="" draggable="false" />
+        <img src={iconUrl('app-32')} width="32" height="32" alt="" draggable="false" />
       </div>
       Napster
     </button>
@@ -192,7 +193,7 @@
         Start
       </button>
       <button class="btn task-btn" class:pressed={app.win.open && !app.win.minimized} onclick={openNapster}>
-        <img class="task-ico" src="/icons/app-16.svg" width="16" height="16" alt="" draggable="false" />
+        <img class="task-ico" src={iconUrl('app-16')} width="16" height="16" alt="" draggable="false" />
         Napster v2.0 BETA 10.3
       </button>
       <div class="tray">
@@ -208,7 +209,7 @@
     <nav class="dock" aria-label="Dock">
       <button class="dock-item" title="Finder" onclick={() => (app.status = 'Finder — Macintosh HD')}>☺</button>
       <button class="dock-item running" title="Napster" onclick={openNapster}>
-        <img src="/icons/app-32.svg" width="32" height="32" alt="Napster" draggable="false" />
+        <img src={iconUrl('app-32')} width="32" height="32" alt="Napster" draggable="false" />
       </button>
       <button class="dock-item" title="Search" onclick={() => { openNapster(); cmdView('search') }}>⌕</button>
       <button class="dock-item" title="Chat" onclick={() => { openNapster(); cmdView('chat') }}>💬</button>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { speedLabel } from '../lib/format'
-  import { sameChannel } from '../lib/hub'
+  import { displayChannel, sameChannel } from '../lib/hub'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
@@ -75,7 +75,7 @@
   <div class="composer">
     <WinInput bind:value={app.chat.input} width="100%" onenter={send} placeholder="message, /help /join /me /msg /whois /away /topic /history" />
     <WinButton label="Send" onclick={send} disabled={!app.connected} />
-    <span class="ch">#{app.chat.channel}</span>
+    <span class="ch">{displayChannel(app.chat.channel)}</span>
     <WinButton label="Join" small onclick={() => (app.dialogs.join = true)} disabled={!app.connected} />
   </div>
 </div>

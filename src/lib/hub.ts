@@ -26,5 +26,12 @@ export function servedFromOpenNap(): boolean {
 }
 
 export function sameChannel(a: string, b: string): boolean {
-  return a.replace(/^#/, '').toLowerCase() === b.replace(/^#/, '').toLowerCase()
+  return a.replace(/^[#&]/, '').toLowerCase() === b.replace(/^[#&]/, '').toLowerCase()
+}
+
+export function displayChannel(name: string): string {
+  const n = name.trim()
+  if (!n) return '#'
+  if (n[0] === '#' || n[0] === '&') return n
+  return `#${n}`
 }

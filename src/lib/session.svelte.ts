@@ -15,13 +15,14 @@ import type {
   SpeedId,
   Transfer,
 } from './types'
-import { detectHub, defaultWssUrl, type HubKind } from './hub'
+import { detectHub, defaultWssUrl, openNapHost, servedFromOpenNap, uiFromLocation, uiPath, type HubKind, type Iface } from './hub'
 import { applyThemeAttr, persistTheme, readTheme, type Theme } from './theme'
 
 export type Phase = 'setup' | 'login' | 'connecting' | 'online'
 
 export const app = $state({
   theme: readTheme() as Theme,
+  ui: uiFromLocation() as Iface,
   phase: 'setup' as Phase,
   connected: false,
   hub: detectHub() as HubKind,
@@ -121,6 +122,14 @@ export const app = $state({
   },
 })
 
+export function persistNick(): void {
+  try {
+    localStorage.setItem('napster-nick', app.nick.trim())
+  } catch {
+    /* ignore */
+  }
+}
+
 export function setTheme(theme: Theme): void {
   app.theme = theme
   persistTheme(theme)
@@ -128,5 +137,32 @@ export function setTheme(theme: Theme): void {
   if (theme === 'mac' && !app.win.maximized && app.win.y < 28) app.win.y = 40
   app.dialogs.menu = null
   app.dialogs.start = false
-  app.status = theme === 'mac' ? 'Mac OS X Aqua look' : 'Windows 98 look'
+  if (app.ui !== 'chat') app.status = theme === 'mac' ? 'Mac OS X Aqua look' : 'Windows 98 look'
+}
+
+function connectionStatus(): string {
+  if (app.connected) {
+    return app.hub === 'wss' ? `Connected to ${app.wssUrl}` : 'Connected to napster.local'
+  }
+  if (app.phase === 'connecting') return app.status
+  return 'Not connected'
+}
+
+export function setUi(ui: Iface, mode: 'push' | 'replace' | 'none' = 'push'): void {
+  const prev = app.ui
+  app.ui = ui
+  if (ui === 'mac' || ui === 'win') {
+    if (prev === 'chat') app.view = 'chat'
+    setTheme(ui === 'mac' ? 'mac' : 'windows')
+  }
+  if (ui === 'chat') app.status = connectionStatus()
+  if (typeof document !== 'undefined') {
+    document.title = ui === 'chat' ? 'OpenNAP' : 'Napster v2.0 BETA 10.3'
+  }
+  if (mode === 'none' || typeof history === 'undefined') return
+  if (!openNapHost() && !servedFromOpenNap()) return
+  const next = uiPath(ui)
+  if (`${location.pathname}${location.search}` === next) return
+  if (mode === 'replace') history.replaceState({ ui }, '', next)
+  else history.pushState({ ui }, '', next)
 }

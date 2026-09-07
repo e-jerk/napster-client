@@ -19,7 +19,7 @@
     cmdView,
   } from '../lib/commands'
   import { HELP_FAQ, HELP_MANUAL, VIEW_ITEMS } from '../lib/menus'
-  import { app, setTheme } from '../lib/session.svelte'
+  import { app, setTheme, setUi } from '../lib/session.svelte'
 
   let {
     which,
@@ -103,9 +103,9 @@
     >
     {#if app.hub === 'wss'}
       <div class="sep"></div>
-      <button onclick={() => { window.location.href = '/'; closeChrome() }}>OpenNAP</button>
-      <button onclick={() => { window.location.href = '/?ui=win'; closeChrome() }}>Napster</button>
-      <button onclick={() => { window.location.href = '/?ui=mac'; closeChrome() }}>Mac</button>
+      <button onclick={() => { setUi('chat'); closeChrome() }}>OpenNAP</button>
+      <button onclick={() => { setUi('win'); closeChrome() }}>Napster</button>
+      <button onclick={() => { setUi('mac'); closeChrome() }}>Mac</button>
     {/if}
   </div>
 {/if}

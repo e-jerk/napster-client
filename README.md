@@ -44,6 +44,8 @@ The Napster client is the same zero-native web window on both desktops. Switch s
 
 The choice is stored in `localStorage` as `napster-theme`.
 
+On an OpenNAP hub the same page also has an **OpenNAP** look. Switching OpenNAP / Napster / Mac keeps the WebSocket session (nick, channel, chat). OpenNAP consumes this repo as a bun package (`github:e-jerk/napster-client`) and embeds `dist/index.html`.
+
 ## What works
 
 - Connection Information wizard (speed + unused SOCKS dialog, matching the archived screenshot)

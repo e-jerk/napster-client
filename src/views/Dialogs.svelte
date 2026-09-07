@@ -196,7 +196,7 @@
   }
 </script>
 
-{#if app.phase === 'setup'}
+{#if app.ui !== 'chat' && app.phase === 'setup'}
   <div class="dialog-backdrop">
     <div class="window dialog">
       <TitleBar title="Connection Information" buttons="close" onclose={() => (app.win.open = false)} />
@@ -229,7 +229,7 @@
   </div>
 {/if}
 
-{#if app.phase === 'login'}
+{#if app.ui !== 'chat' && app.phase === 'login'}
   <div class="dialog-backdrop">
     <div class="window dialog">
       <TitleBar title="Choose a Nickname" buttons="close" onclose={() => (app.phase = 'setup')} />
@@ -283,7 +283,7 @@
   </div>
 {/if}
 
-{#if app.phase === 'connecting'}
+{#if app.ui !== 'chat' && app.phase === 'connecting'}
   <div class="dialog-backdrop">
     <div class="window dialog slim">
       <TitleBar title="Napster" />

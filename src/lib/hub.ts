@@ -1,8 +1,19 @@
 export type HubKind = 'demo' | 'wss'
+export type Iface = 'chat' | 'win' | 'mac'
+
+declare global {
+  interface Window {
+    __OPENNAP__?: boolean
+  }
+}
 
 function uiParam(): string {
   if (typeof location === 'undefined') return ''
   return (new URLSearchParams(location.search).get('ui') || '').toLowerCase()
+}
+
+export function openNapHost(): boolean {
+  return typeof window !== 'undefined' && window.__OPENNAP__ === true
 }
 
 export function uiTheme(): 'windows' | 'mac' | null {
@@ -10,6 +21,21 @@ export function uiTheme(): 'windows' | 'mac' | null {
   if (ui === 'mac') return 'mac'
   if (ui === 'win' || ui === 'windows' || ui === 'napster') return 'windows'
   return null
+}
+
+export function uiFromLocation(): Iface {
+  const ui = uiParam()
+  if (ui === 'mac') return 'mac'
+  if (ui === 'win' || ui === 'windows' || ui === 'napster') return 'win'
+  if (ui === 'chat') return 'chat'
+  if (openNapHost()) return 'chat'
+  return uiTheme() === 'mac' ? 'mac' : 'win'
+}
+
+export function uiPath(ui: Iface): string {
+  if (ui === 'chat') return '/?ui=chat'
+  if (ui === 'mac') return '/?ui=mac'
+  return '/?ui=win'
 }
 
 export function detectHub(): HubKind {
@@ -31,10 +57,10 @@ export function defaultWssUrl(): string {
 }
 
 export function servedFromOpenNap(): boolean {
+  if (openNapHost()) return true
   if (typeof location === 'undefined') return false
   const path = location.pathname.replace(/\/+$/, '') || '/'
-  if (path === '/napster' || path.endsWith('/napster')) return true
-  return uiTheme() !== null
+  return path === '/napster' || path.endsWith('/napster')
 }
 
 export function sameChannel(a: string, b: string): boolean {

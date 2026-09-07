@@ -78,10 +78,18 @@ export async function ensureDemoHub(): Promise<void> {
   setTimeout(chatter, 2200)
 }
 
-export const networkReady: Promise<void> = (async () => {
-  seedLibrary()
-  if (detectHub() === 'demo') await ensureDemoHub()
-})()
+let started: Promise<void> | null = null
+
+/** Start the in-browser hub after first paint. Do not call at module load. */
+export function startNetwork(): Promise<void> {
+  if (!started) {
+    started = (async () => {
+      seedLibrary()
+      if (detectHub() === 'demo') await ensureDemoHub()
+    })()
+  }
+  return started
+}
 
 export function shutdownNetwork(): void {
   if (chatTimer) clearInterval(chatTimer)

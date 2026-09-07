@@ -134,12 +134,7 @@
     </button>
     <button class="desktop-icon nap" ondblclick={openNapster}>
       <div class="glyph">
-        <svg viewBox="0 0 48 48">
-          <rect width="48" height="48" rx="10" fill="#1e3a8a" />
-          <ellipse cx="24" cy="28" rx="13" ry="11" fill="#d9a066" />
-          <circle cx="19" cy="26" r="3" fill="#1a7a2a" />
-          <circle cx="29" cy="26" r="3" fill="#1a7a2a" />
-        </svg>
+        <img src="/icons/app-32.svg" width="32" height="32" alt="" draggable="false" />
       </div>
       Napster
     </button>
@@ -165,12 +160,7 @@
     </button>
     <button class="desktop-icon" style="position:absolute;left:16px;top:176px" ondblclick={openNapster}>
       <div class="glyph">
-        <svg viewBox="0 0 32 32">
-          <rect width="32" height="32" rx="3" fill="#000080" />
-          <ellipse cx="16" cy="18" rx="9" ry="8" fill="#d9a066" />
-          <circle cx="12.5" cy="17" r="2" fill="#1a7a2a" />
-          <circle cx="19.5" cy="17" r="2" fill="#1a7a2a" />
-        </svg>
+        <img src="/icons/app-32.svg" width="32" height="32" alt="" draggable="false" />
       </div>
       Napster
     </button>
@@ -202,6 +192,7 @@
         Start
       </button>
       <button class="btn task-btn" class:pressed={app.win.open && !app.win.minimized} onclick={openNapster}>
+        <img class="task-ico" src="/icons/app-16.svg" width="16" height="16" alt="" draggable="false" />
         Napster v2.0 BETA 10.3
       </button>
       <div class="tray">
@@ -217,10 +208,7 @@
     <nav class="dock" aria-label="Dock">
       <button class="dock-item" title="Finder" onclick={() => (app.status = 'Finder — Macintosh HD')}>☺</button>
       <button class="dock-item running" title="Napster" onclick={openNapster}>
-        <svg viewBox="0 0 40 40" width="40" height="40">
-          <rect width="40" height="40" rx="9" fill="#1e3a8a" />
-          <ellipse cx="20" cy="23" rx="11" ry="9" fill="#d9a066" />
-        </svg>
+        <img src="/icons/app-32.svg" width="32" height="32" alt="Napster" draggable="false" />
       </button>
       <button class="dock-item" title="Search" onclick={() => { openNapster(); cmdView('search') }}>⌕</button>
       <button class="dock-item" title="Chat" onclick={() => { openNapster(); cmdView('chat') }}>💬</button>

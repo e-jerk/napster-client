@@ -55,6 +55,7 @@
       addNick = ''
     }} />
     <WinButton
+      icon="user-online"
       label="Add"
       onclick={() => {
         if (addNick.trim()) client.addHot(addNick.trim())

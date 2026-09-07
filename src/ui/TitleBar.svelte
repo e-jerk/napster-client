@@ -1,5 +1,6 @@
 <script lang="ts">
   import { app } from '../lib/session.svelte'
+  import CatLogo from './CatLogo.svelte'
   import MacTitleBar from './MacTitleBar.svelte'
 
   let {
@@ -25,6 +26,7 @@
   <MacTitleBar {title} {inactive} {buttons} {onclose} {onmin} {onzoom} {onpointerdown} />
 {:else}
   <div class="caption" class:inactive role="toolbar" tabindex="0" {onpointerdown}>
+    <CatLogo compact />
     <span>{title}</span>
     {#if onclose || onmin || onzoom}
       <div class="caption-btns">

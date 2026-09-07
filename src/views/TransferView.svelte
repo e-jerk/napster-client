@@ -80,7 +80,7 @@
 
 <div class="xfer">
   <div class="pane">
-    <div class="label">Downloads</div>
+    <div class="label"><img class="pane-ico" src="/icons/download.svg" width="16" height="16" alt="" /> Downloads</div>
     <WinListView
       persistKey="downloads"
       columns={downloadCols}
@@ -91,7 +91,7 @@
     />
   </div>
   <div class="pane">
-    <div class="label">Uploads</div>
+    <div class="label"><img class="pane-ico" src="/icons/upload.svg" width="16" height="16" alt="" /> Uploads</div>
     <WinListView
       persistKey="uploads"
       columns={uploadCols}
@@ -129,6 +129,13 @@
   }
   .label {
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pane-ico {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
   }
   .actions {
     display: flex;

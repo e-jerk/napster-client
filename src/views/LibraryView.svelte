@@ -86,8 +86,8 @@
     <div class="now">
       {app.player.title || 'Napster Internal Player — double-click a file (AMP)'}
     </div>
-    <WinButton label="Play" small onclick={() => app.librarySelected && playId(app.librarySelected)} />
-    <WinButton label="Stop" small onclick={stop} />
+    <WinButton icon="play" label="Play" small onclick={() => app.librarySelected && playId(app.librarySelected)} />
+    <WinButton icon="stop" label="Stop" small onclick={stop} />
     <span class="meta">{app.library.length} files · {formatSize(app.library.reduce((n, f) => n + f.size, 0))}</span>
   </div>
   {#if app.player.url}

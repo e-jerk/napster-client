@@ -31,7 +31,7 @@ Top-level menus are ASCII strings in `.rdata`. Context menus are `RT_MENU` 276�
 | **Actions** | Instant Message, Add User to Hot List, View User Information, Join Chat Rooms, View Ignore List, Shop for Music at CDNOW, Logon Server |
 | **Help** | Getting Started, Home, Manual (Installation…Extra Knowledge), Napster FAQ (Connecting…Company Info), Customer Support, Send Us Some Feedback!, About Napster |
 
-The toolbar matches those View tabs plus **Help** and the **CDNOW** shop button. The strip under the toolbar rotates the four in-client surfaces the binary actually had (CDNOW / shop.napster.com, Home `?02b103`, Discover, AMP). Clicks open a local pane or an Internet Archive snapshot — no live ad network.
+The toolbar matches those View tabs plus **Help** and the **CDNOW** shop button. Toolbar, title-bar, desktop, and player glyphs are **pixel-perfect SVGs** traced from `napster.exe` `RT_GROUP_ICON` / `RT_BITMAP` (AND-mask transparency, original 16-color palette). They live in `public/icons/`. Re-extract with `python3 scripts/pe-icons-to-svg.py` if you have a local copy of the unpacked EXE. The strip under the toolbar rotates the four in-client surfaces the binary actually had (CDNOW / shop.napster.com, Home `?02b103`, Discover, AMP). Clicks open a local pane or an Internet Archive snapshot — no live ad network.
 
 Status bar wording is from the binary: `Online (nick): Sharing N files.` plus `Currently N users sharing N files (N gigs)`.
 
@@ -55,6 +55,7 @@ The choice is stored in `localStorage` as `napster-theme`.
 - Hot list, browse user, context menus
 - Status bar share / library counts in the original “Sharing N files, Currently…” wording
 - Desktop theme switch (Mac Aqua ↔ Windows 98) around the same in-browser hub
+- Icons and wordmark extracted from napster.exe (`public/icons/*.svg`)
 - Home bulletin (`home.html?02b103`), Discover, CDNOW / shop.napster.com, Help tree from napster.exe, Preferences tabs (Personal / Chat / Transfer / Proxy / My Files), Ignore List, Logon Server, Send Feedback
 - Search popup, user popup, My Files popup, Transfer popup, and Hot List popup from `RT_MENU` resources
 

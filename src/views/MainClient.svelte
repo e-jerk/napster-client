@@ -3,10 +3,12 @@
   import { networkStatus, offlineStatus, onlineStatus, VIEW_ITEMS, VIEW_SHORTCUTS } from '../lib/menus'
   import { app } from '../lib/session.svelte'
   import type { AppView } from '../lib/types'
+  import { TOOL_ICONS } from '../lib/icons'
   import AdBanner from '../ui/AdBanner.svelte'
   import AppMenus from '../ui/AppMenus.svelte'
   import CatLogo from '../ui/CatLogo.svelte'
   import CdnowButton from '../ui/CdnowButton.svelte'
+  import NapIcon from '../ui/NapIcon.svelte'
   import ThemeSwitch from '../ui/ThemeSwitch.svelte'
   import TitleBar from '../ui/TitleBar.svelte'
   import ChatView from './ChatView.svelte'
@@ -132,23 +134,7 @@
         onclick={() => clickTool(t.id)}
         disabled={app.phase === 'setup' && t.id !== 'help' && t.id !== 'home'}
       >
-        {#if t.id === 'home'}
-          <svg viewBox="0 0 32 32"><path d="M4 16 16 6l12 10v12H4z" fill="#c9a06a" stroke="#000" /><rect x="13" y="18" width="6" height="10" fill="#6b3e16" /></svg>
-        {:else if t.id === 'chat'}
-          <svg viewBox="0 0 32 32"><rect x="2" y="4" width="18" height="12" fill="#fff" stroke="#000" /><rect x="10" y="14" width="18" height="12" fill="#c6e4ff" stroke="#000" /></svg>
-        {:else if t.id === 'library'}
-          <svg viewBox="0 0 32 32"><path d="M4 10h10l2 3h12v13H4z" fill="#f4d060" stroke="#000" /><path d="M12 18c6 0 8 4 8 4s-1-8-8-8-8 8-8 8 2-4 8-4z" fill="#1e4ea8" /></svg>
-        {:else if t.id === 'search'}
-          <svg viewBox="0 0 32 32"><circle cx="12" cy="14" r="6" fill="none" stroke="#000" stroke-width="2" /><circle cx="20" cy="14" r="6" fill="none" stroke="#000" stroke-width="2" /></svg>
-        {:else if t.id === 'hotlist'}
-          <svg viewBox="0 0 32 32"><path d="M16 4c6 8 10 12 10 18a10 10 0 1 1-20 0c0-6 4-10 10-18z" fill="#e67a00" stroke="#000" /></svg>
-        {:else if t.id === 'transfer'}
-          <svg viewBox="0 0 32 32"><path d="M6 10h8V6l8 8-8 8v-4H6z" fill="#2f7d32" stroke="#000" /><path d="M26 22h-8v4l-8-8 8-8v4h8z" fill="#1565c0" stroke="#000" /></svg>
-        {:else if t.id === 'discover'}
-          <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="#1e4ea8" stroke="#000" /><path d="M16 7c4 3 6 6 6 9s-2 6-6 9c-4-3-6-6-6-9s2-6 6-9z" fill="#7ec8ff" /></svg>
-        {:else}
-          <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#fff8d0" stroke="#000" /><text x="16" y="21" text-anchor="middle" font-size="16" font-weight="700">?</text></svg>
-        {/if}
+        <NapIcon name={TOOL_ICONS[t.id]} size={32} />
         {t.label}
       </button>
     {/each}

@@ -144,6 +144,13 @@ button {
     inset 2px 2px 0 #dfdfdf;
 }
 
+.btn.has-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
 .field {
   background: var(--window);
   color: #000;
@@ -357,9 +364,9 @@ select.field {
     inset -1px -1px 0 var(--hl);
 }
 
-.tool svg {
-  width: 28px;
-  height: 28px;
+.tool :global(.nap-icon) {
+  width: 32px;
+  height: 32px;
 }
 
 .statusbar {
@@ -523,6 +530,19 @@ select.field {
   width: 32px;
   height: 32px;
   margin: 0 auto 4px;
+}
+
+.desktop-icon .glyph img,
+.task-ico,
+.dock-item img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.task-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .taskbar {

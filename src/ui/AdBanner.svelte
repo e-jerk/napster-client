@@ -1,6 +1,7 @@
 <script lang="ts">
   import { BANNERS } from '../lib/ads'
   import { cmdAbout, cmdShop, cmdView } from '../lib/commands'
+  import { iconUrl } from '../lib/icons'
 
   let i = $state(0)
   const ad = $derived(BANNERS[i % BANNERS.length]!)
@@ -29,7 +30,14 @@
   onclick={click}
   title="From napster.exe — Home/Discover HTML and shop.napster.com, not a live ad network"
 >
-  <span class="kicker" style:color={ad.colors.accent}>{ad.kicker}</span>
+  {#if ad.id === 'cdnow'}
+    <img class="mark" src={iconUrl('cdnow')} width="50" height="12" alt="CDNOW" draggable="false" />
+  {:else if ad.id === 'home'}
+    <img class="mark cat" src={iconUrl('app-16')} width="16" height="16" alt="" draggable="false" />
+    <span class="kicker" style:color={ad.colors.accent}>{ad.kicker}</span>
+  {:else}
+    <span class="kicker" style:color={ad.colors.accent}>{ad.kicker}</span>
+  {/if}
   <span class="copy">
     <strong>{ad.title}</strong>
     <em>{ad.line}</em>
@@ -58,6 +66,15 @@
     font: 700 11px Tahoma, sans-serif;
     letter-spacing: 1px;
     flex: 0 0 auto;
+  }
+  .mark {
+    flex: 0 0 auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  .mark.cat {
+    width: 16px;
+    height: 16px;
   }
   .copy {
     display: flex;

@@ -81,9 +81,9 @@
   </div>
   <div class="composer">
     <WinInput bind:value={app.chat.input} width="100%" onenter={send} placeholder="message, /help /join /me /msg /whois /away /topic /history" />
-    <WinButton label="Send" onclick={send} disabled={!app.connected} />
+    <WinButton icon="chat" label="Send" onclick={send} disabled={!app.connected} />
     <span class="ch">{displayChannel(app.chat.channel)}</span>
-    <WinButton label="Chat Rooms" small onclick={() => (app.dialogs.join = true)} disabled={!app.connected} />
+    <WinButton icon="chat" label="Chat Rooms" small onclick={() => (app.dialogs.join = true)} disabled={!app.connected} />
   </div>
 </div>
 

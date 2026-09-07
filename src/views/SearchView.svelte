@@ -105,6 +105,7 @@
     </label>
     <div class="go">
       <WinButton
+        icon="search"
         label={app.search.searching ? 'Searching…' : '<u>F</u>ind It!'}
         disabled={!app.connected || app.search.searching}
         onclick={() => client.search()}
@@ -147,6 +148,7 @@
   />
   <div class="actions">
     <WinButton
+      icon="download"
       label="Get Selected Files"
       disabled={!app.search.selected}
       onclick={() => {
@@ -155,6 +157,7 @@
       }}
     />
     <WinButton
+      icon="user-online"
       label="Add Selected User to Hot List"
       disabled={!app.search.selected}
       onclick={() => {

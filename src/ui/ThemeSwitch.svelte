@@ -19,18 +19,7 @@
 
 <div class="theme-switch" class:compact role="group" aria-label="Interface">
   {#if showChat}
-    <a
-      href="/"
-      onpointerdown={(e) => {
-        e.stopPropagation()
-      }}
-      onclick={(e) => {
-        e.preventDefault()
-        go('chat')
-      }}
-    >
-      OpenNAP
-    </a>
+    <a href="/" onpointerdown={(e) => e.stopPropagation()}>OpenNAP</a>
   {/if}
   <button
     type="button"

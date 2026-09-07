@@ -412,7 +412,7 @@
           </WinGroup>
         {:else if app.dialogs.prefTab === 'transfer'}
           <WinGroup title="Folder for Downloading and Sharing">
-            <p class="muted">Share folder is this tab’s My Files. All files here are shared with the Napster community.</p>
+            <p class="muted">Pick a share folder (or files) and a download folder. Browser peers move bytes over WebRTC; the hub only relays signaling.</p>
             <label class="row">
               <span>Maximum simultaneous inbound transfers:</span>
               <WinInput bind:value={app.prefs.maxInbound} width="48px" />

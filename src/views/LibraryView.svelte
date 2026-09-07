@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatBitrate, formatDuration, formatSize } from '../lib/format'
-  import { hasFs, pickDownloads, pickShare } from '../lib/fs'
+  import { hasFs, pickDownloads } from '../lib/fs'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
@@ -90,15 +90,14 @@
     </div>
     <WinButton icon="play" label="Play" small onclick={() => app.librarySelected && playId(app.librarySelected)} />
     <WinButton icon="stop" label="Stop" small onclick={stop} />
+    <WinButton
+      label="Share Folder…"
+      small
+      onclick={async () => {
+        await client.pickAndShare()
+      }}
+    />
     {#if hasFs()}
-      <WinButton
-        label="Share Folder…"
-        small
-        onclick={async () => {
-          const dir = await pickShare()
-          if (dir) await client.shareFolder()
-        }}
-      />
       <WinButton
         label="Download Folder…"
         small

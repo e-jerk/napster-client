@@ -24,6 +24,20 @@ export async function pickShare(): Promise<DirHandle | null> {
   return share
 }
 
+export async function pickShareFiles(): Promise<File[]> {
+  if (hasFs()) {
+    if (!(await pickShare())) return []
+    return listShareFiles()
+  }
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.multiple = true
+    input.onchange = () => resolve(Array.from(input.files ?? []))
+    input.click()
+  })
+}
+
 export async function pickDownloads(): Promise<DirHandle | null> {
   if (!hasFs()) return null
   downloads = await window.showDirectoryPicker({ id: 'opennap-downloads', mode: 'readwrite' })

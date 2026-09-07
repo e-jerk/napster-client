@@ -26,9 +26,14 @@ type Incoming = {
   got: number
 }
 
+type Peer = {
+  pc: RTCPeerConnection
+  pendingIce: RTCIceCandidateInit[]
+}
+
 export class RtcMesh {
   private send: RtcSend | null = null
-  private peers = new Map<string, RTCPeerConnection>()
+  private peers = new Map<string, Peer>()
   private channels = new Map<string, RTCDataChannel>()
   private incoming = new Map<string, Incoming>()
   onFile: ((nick: string, file: string, data: Uint8Array) => void) | null = null
@@ -42,7 +47,7 @@ export class RtcMesh {
 
   close(): void {
     for (const ch of this.channels.values()) ch.close()
-    for (const pc of this.peers.values()) pc.close()
+    for (const peer of this.peers.values()) peer.pc.close()
     this.channels.clear()
     this.peers.clear()
     this.incoming.clear()
@@ -64,28 +69,37 @@ export class RtcMesh {
         this.onError?.(nick, `${msg.file} is not in the share folder`)
         return
       }
-      await this.sendFile(nick, file)
+      void this.sendFile(nick, file).catch((err: unknown) => {
+        this.onError?.(nick, err instanceof Error ? err.message : 'WebRTC upload failed')
+      })
       return
     }
     if (msg.typ === 'bye') {
       this.drop(nick)
       return
     }
-    const pc = this.peer(nick)
+    const peer = this.peer(nick)
     if (msg.typ === 'offer' && msg.sdp) {
-      await pc.setRemoteDescription({ type: 'offer', sdp: msg.sdp })
-      const answer = await pc.createAnswer()
-      await pc.setLocalDescription(answer)
+      await peer.pc.setRemoteDescription({ type: 'offer', sdp: msg.sdp })
+      await this.flushIce(nick)
+      const answer = await peer.pc.createAnswer()
+      await peer.pc.setLocalDescription(answer)
       this.emit({ typ: 'answer', to: nick, sdp: answer.sdp })
       return
     }
     if (msg.typ === 'answer' && msg.sdp) {
-      if (!pc.currentRemoteDescription) await pc.setRemoteDescription({ type: 'answer', sdp: msg.sdp })
+      if (!peer.pc.currentRemoteDescription) await peer.pc.setRemoteDescription({ type: 'answer', sdp: msg.sdp })
+      await this.flushIce(nick)
       return
     }
     if (msg.typ === 'ice' && msg.ice) {
+      const cand = JSON.parse(msg.ice) as RTCIceCandidateInit
+      if (!peer.pc.currentRemoteDescription) {
+        peer.pendingIce.push(cand)
+        return
+      }
       try {
-        await pc.addIceCandidate(JSON.parse(msg.ice) as RTCIceCandidateInit)
+        await peer.pc.addIceCandidate(cand)
       } catch {
         /* stale */
       }
@@ -94,11 +108,11 @@ export class RtcMesh {
 
   async request(nick: string, file: string): Promise<void> {
     this.emit({ typ: 'want', to: nick, file })
-    const pc = this.peer(nick)
-    const ch = pc.createDataChannel('napster')
+    const peer = this.peer(nick)
+    const ch = peer.pc.createDataChannel('napster')
     this.bindChannel(nick, ch)
-    const offer = await pc.createOffer()
-    await pc.setLocalDescription(offer)
+    const offer = await peer.pc.createOffer()
+    await peer.pc.setLocalDescription(offer)
     this.emit({ typ: 'offer', to: nick, sdp: offer.sdp, file })
   }
 
@@ -110,18 +124,21 @@ export class RtcMesh {
       const slice = buf.subarray(i, i + CHUNK)
       const copy = new Uint8Array(slice.byteLength)
       copy.set(slice)
+      while (ch.bufferedAmount > 512 * 1024) await pause(20)
       ch.send(copy)
       this.onProgress?.(nick, file.name, Math.min(buf.length, i + slice.length), buf.length)
     }
+    while (ch.bufferedAmount > 0) await pause(20)
     ch.send(JSON.stringify({ op: 'done', file: file.name }))
   }
 
-  private peer(nick: string): RTCPeerConnection {
+  private peer(nick: string): Peer {
     const key = nick.toLowerCase()
     const existing = this.peers.get(key)
-    if (existing && existing.connectionState !== 'closed' && existing.connectionState !== 'failed') return existing
+    if (existing && existing.pc.connectionState !== 'closed' && existing.pc.connectionState !== 'failed') return existing
     const pc = new RTCPeerConnection(ICE)
-    this.peers.set(key, pc)
+    const peer: Peer = { pc, pendingIce: [] }
+    this.peers.set(key, peer)
     pc.onicecandidate = (ev) => {
       if (ev.candidate) this.emit({ typ: 'ice', to: nick, ice: JSON.stringify(ev.candidate) })
     }
@@ -129,7 +146,20 @@ export class RtcMesh {
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') this.drop(nick)
     }
-    return pc
+    return peer
+  }
+
+  private async flushIce(nick: string): Promise<void> {
+    const peer = this.peers.get(nick.toLowerCase())
+    if (!peer?.pc.currentRemoteDescription) return
+    const queued = peer.pendingIce.splice(0)
+    for (const cand of queued) {
+      try {
+        await peer.pc.addIceCandidate(cand)
+      } catch {
+        /* stale */
+      }
+    }
   }
 
   private bindChannel(nick: string, ch: RTCDataChannel): void {
@@ -197,11 +227,15 @@ export class RtcMesh {
   private drop(nick: string): void {
     const key = nick.toLowerCase()
     this.channels.get(key)?.close()
-    this.peers.get(key)?.close()
+    this.peers.get(key)?.pc.close()
     this.channels.delete(key)
     this.peers.delete(key)
     this.incoming.delete(key)
   }
+}
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
 function concat(chunks: Uint8Array[], total: number): Uint8Array {

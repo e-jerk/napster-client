@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { hasFs, pickDownloads, pickShare } from '../lib/fs'
+  import { hasFs, pickDownloads } from '../lib/fs'
   import { displayChannel, sameChannel } from '../lib/hub'
   import { client } from '../lib/network'
   import { app, persistNick, setUi } from '../lib/session.svelte'
@@ -70,13 +70,13 @@
     <button type="button" onclick={toggle}>{app.connected ? 'Disconnect' : 'Connect'}</button>
     <input bind:value={joinName} maxlength="32" />
     <button type="button" onclick={join} disabled={!app.connected}>Join</button>
+    <button
+      type="button"
+      onclick={async () => {
+        await client.pickAndShare()
+      }}>Share folder</button
+    >
     {#if hasFs()}
-      <button
-        type="button"
-        onclick={async () => {
-          if (await pickShare()) await client.shareFolder()
-        }}>Share folder</button
-      >
       <button
         type="button"
         onclick={async () => {

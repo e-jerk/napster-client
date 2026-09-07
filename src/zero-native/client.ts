@@ -1,7 +1,7 @@
 import { renderPreviewWav } from '../lib/audio'
 import { LOCAL_LIBRARY } from '../lib/catalog'
 import { finiteNumber, hash32, parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
-import { libraryFromFile, listShareFiles, readShareFile, writeDownload } from '../lib/fs'
+import { libraryFromFile, listShareFiles, pickShareFiles, readShareFile, writeDownload } from '../lib/fs'
 import { sameChannel } from '../lib/hub'
 import { fetchMeta, pickHubUrl } from '../lib/meta'
 import { RtcMesh } from '../lib/rtc'
@@ -230,7 +230,14 @@ export class NapsterClient {
 
   private bindRtc(): void {
     this.rtc.attach((msg) => this.sock?.sendText?.(JSON.stringify(msg)))
-    this.rtc.onWant = (_nick, file) => readShareFile(file)
+    this.rtc.onWant = async (_nick, file) => {
+      const fromDisk = await readShareFile(file)
+      if (fromDisk) return fromDisk
+      const item = app.library.find((x) => x.filename === file)
+      if (item?.blob instanceof File) return item.blob
+      if (item?.blob) return new File([item.blob], file)
+      return null
+    }
     this.rtc.onFile = (nick, file, data) => {
       const t = this.pending.get(`${nick}|${file}`) ?? app.transfers.find((x) => x.filename === file && x.nick === nick)
       if (t) this.finishDownload(t, [data])
@@ -249,7 +256,14 @@ export class NapsterClient {
   }
 
   async shareFolder(): Promise<number> {
-    const files = await listShareFiles()
+    return this.addShareFiles(await listShareFiles())
+  }
+
+  async pickAndShare(): Promise<number> {
+    return this.addShareFiles(await pickShareFiles())
+  }
+
+  addShareFiles(files: File[]): number {
     for (const file of files) {
       const item = libraryFromFile(file)
       app.library = [item, ...app.library.filter((x) => x.filename !== item.filename)]
@@ -1122,7 +1136,7 @@ export class NapsterClient {
       bytes.set(c, o)
       o += c.length
     }
-    const blob = bytes.length > 44 ? new Blob([bytes]) : renderPreviewWav(row.filename)
+    const blob = app.hub === 'wss' || bytes.length > 44 ? new Blob([bytes]) : renderPreviewWav(row.filename)
     void writeDownload(row.filename, blob)
     this.patch(row.id, {
       blob,

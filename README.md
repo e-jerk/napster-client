@@ -18,6 +18,19 @@ Browsers cannot open raw TCP sockets. Instead of Electron, Node `net`, or a nati
 
 Open **Actions → TCP Bridge…** after you connect to watch framed packets.
 
+## Menus and ads (2.0 BETA 10.3)
+
+`napv2b10-3.exe` on archive.org is a MindVision VISE installer (the running `napster.exe` is packed inside). Menu and ad chrome is reconstructed from that installer metadata, the archive.org Connection Information screenshot, Kacper Poblocki’s 2001 write-up of **v2.0 BETA 9.6**, a contemporary interface screenshot (Home / Chat / Library / Search / Hot List / Transfer / Discover / Help), and the beta 9–10.2 CDNOW changelog.
+
+| Menu | Items |
+| --- | --- |
+| **File** | Connect, Disconnect, Preferences, Exit |
+| **View** | Home, Chat, Library, Search, Hot List, Transfer, Discover |
+| **Actions** | Instant Message, Add user to Hot List, View User Information, Join Chat Rooms, View Ignore List, Shop for music at CDNOW |
+| **Help** | Getting Started, Manual, Napster FAQ, Customer Support, About Napster |
+
+The toolbar matches those View tabs plus **Help** and the yellow **CDNOW** shop button. A rotating 468×60-style banner (CDNOW, Winamp, Napster Music Community, MP3.com) sits under the toolbar. Clicks open a local shop/help pane or an Internet Archive snapshot — no live ad network.
+
 ## Mac and Windows looks
 
 The Napster client is the same zero-native web window on both desktops. Switch styles from the **Windows | Mac** control in the toolbar (and on the Mac menu bar), or from **View**, the Apple menu, or the Start menu.
@@ -36,8 +49,9 @@ The choice is stored in `localStorage` as `napster-theme`.
 - Chat rooms and slash commands (`/join`, `/me`, `/msg`, `/whois`, `/away`, `/topic`, `/history`, `/help`, …)
 - Library + internal player (short original WAV previews)
 - Hot list, browse user, context menus
-- Status bar file / GB / user counts
+- Status bar share / library counts in the original “Sharing N files, Currently…” wording
 - Desktop theme switch (Mac Aqua ↔ Windows 98) around the same in-browser hub
+- Home bulletin, Discover artists, CDNOW shop, Help sheets, Preferences, Ignore List
 
 ## Run locally
 

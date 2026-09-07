@@ -1,6 +1,9 @@
 <script lang="ts">
-  import { CHANNELS } from '../lib/catalog'
+  import { CDNOW_SNAPSHOT } from '../lib/ads'
+  import { CHANNELS, DISCOVER } from '../lib/catalog'
+  import { addIgnore, removeIgnore } from '../lib/commands'
   import { formatBitrate, formatDuration, formatSize, speedLabel } from '../lib/format'
+  import { HELP } from '../lib/help'
   import { servedFromOpenNap } from '../lib/hub'
   import { client, ensureDemoHub } from '../lib/network'
   import { app } from '../lib/session.svelte'
@@ -54,8 +57,30 @@
     if (kind === 'hot' && arg) client.addHot(arg)
     if (kind === 'pm' && arg) client.msg(arg, '')
     if (kind === 'whois' && arg) client.say(`/whois ${arg}`)
-    if (kind === 'ignore' && arg) client.say(`/ignore ${arg}`)
+    if (kind === 'ignore' && arg) {
+      addIgnore(arg)
+      if (app.connected) client.say(`/ignore ${arg}`)
+    }
+    if (kind === 'info' && arg) app.dialogs.userInfo = arg
   }
+
+  const userInfo = $derived.by(() => {
+    const nick = app.dialogs.userInfo
+    if (!nick) return null
+    const hit = app.search.results.find((r) => r.nick === nick)
+    const hot = app.hotlist.find((h) => h.nick === nick)
+    const chat = app.chat.users.find((u) => u.nick === nick)
+    return {
+      nick,
+      files: hit ? 1 : (hot?.files ?? chat?.files ?? 0),
+      speed: hit?.speed ?? hot?.speed ?? chat?.speed ?? 0,
+      ping: hit?.ping,
+      online: Boolean(chat || hit || hot?.online),
+      firewalled: hit?.firewalled ?? false,
+    }
+  })
+
+  let ignoreNick = $state('')
 
   function sendPm(nick: string) {
     const thread = app.pms.find((p) => p.nick === nick)
@@ -139,7 +164,7 @@
           </div>
         </WinGroup>
         <div class="btns">
-          <WinButton label="Help" onclick={() => (app.dialogs.about = true)} />
+          <WinButton label="Help" onclick={() => (app.dialogs.help = 'start')} />
           <span class="spacer"></span>
           <WinButton label="Cancel" onclick={() => (app.win.open = false)} />
           <WinButton primary label="<u>N</u>ext &gt;" onclick={() => (app.phase = 'login')} />
@@ -267,6 +292,146 @@
               app.view = 'chat'
             }}
           />
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if app.dialogs.preferences}
+  <div class="dialog-backdrop">
+    <div class="window dialog">
+      <TitleBar title="Preferences" buttons="close" onclose={() => (app.dialogs.preferences = false)} />
+      <div class="body">
+        <WinGroup title="Connection">
+          <label class="row">
+            <span>Connection Speed:</span>
+            <WinSelect bind:value={app.speed} options={speedOpts} width="180px" />
+          </label>
+          <label class="row">
+            <span>Email:</span>
+            <WinInput bind:value={app.email} width="180px" placeholder="optional" />
+          </label>
+        </WinGroup>
+        <WinGroup title="Library / Player">
+          <label class="row">
+            <input
+              type="checkbox"
+              checked={app.player.internal}
+              onchange={(e) => (app.player.internal = (e.currentTarget as HTMLInputElement).checked)}
+            />
+            <span>Use Napster internal player</span>
+          </label>
+          <p class="muted">Share folder is this tab’s Library. External Winamp is a banner link only.</p>
+        </WinGroup>
+        <WinGroup title="Proxy Server Information">
+          <p class="muted">SOCKS is unused — the zero-native stack never leaves the browser.</p>
+          <WinButton label="Proxy Setup..." onclick={() => (app.dialogs.proxy = true)} />
+        </WinGroup>
+        <div class="btns">
+          <span class="spacer"></span>
+          <WinButton primary label="OK" onclick={() => (app.dialogs.preferences = false)} />
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if app.dialogs.ignore}
+  <div class="dialog-backdrop">
+    <div class="window dialog slim">
+      <TitleBar title="Ignore List" buttons="close" onclose={() => (app.dialogs.ignore = false)} />
+      <div class="body">
+        <p>Public chat from these nicknames is hidden. Instant messages still arrive.</p>
+        <div class="list-wrap" style="height: 140px">
+          {#if app.ignore.length}
+            {#each app.ignore as n (n)}
+              <button class="ignore-row" onclick={() => (ignoreNick = n)}>{n}</button>
+            {/each}
+          {:else}
+            <p class="muted">No ignored users.</p>
+          {/if}
+        </div>
+        <div class="btns">
+          <WinInput bind:value={ignoreNick} width="140px" placeholder="nickname" />
+          <WinButton label="Add" onclick={() => { addIgnore(ignoreNick); ignoreNick = '' }} />
+          <WinButton label="Remove" disabled={!ignoreNick} onclick={() => { removeIgnore(ignoreNick); ignoreNick = '' }} />
+          <span class="spacer"></span>
+          <WinButton primary label="Close" onclick={() => (app.dialogs.ignore = false)} />
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if app.dialogs.shop}
+  <div class="dialog-backdrop">
+    <div class="window dialog">
+      <TitleBar title="Shop for music at CDNOW" buttons="close" onclose={() => (app.dialogs.shop = false)} />
+      <div class="body">
+        <div class="shop-hero">
+          <strong>CDNOW</strong>
+          <span>Heard it on Napster? Buy the CD.</span>
+        </div>
+        <p>
+          The 2.0 beta 9–10.3 client opened a browser to CDNOW from the yellow toolbar button and
+          from Actions → Shop for music at CDNOW. These titles are original demo albums, not store SKUs.
+        </p>
+        <ul class="shop-list">
+          {#each DISCOVER as d (d.artist)}
+            <li><b>{d.artist}</b> — {d.genre}. {d.blurb}</li>
+          {/each}
+        </ul>
+        <div class="btns">
+          <WinButton
+            label="Open CDNOW (archive.org)"
+            onclick={() => window.open(CDNOW_SNAPSHOT, '_blank', 'noreferrer')}
+          />
+          <span class="spacer"></span>
+          <WinButton primary label="Close" onclick={() => (app.dialogs.shop = false)} />
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if userInfo}
+  <div class="dialog-backdrop">
+    <div class="window dialog slim">
+      <TitleBar title="User Information — {userInfo.nick}" buttons="close" onclose={() => (app.dialogs.userInfo = null)} />
+      <div class="body">
+        <div class="row"><span>Nickname</span><b>{userInfo.nick}</b></div>
+        <div class="row"><span>Connection</span><span>{speedLabel(userInfo.speed)}</span></div>
+        <div class="row"><span>Files</span><span>{userInfo.files}</span></div>
+        {#if userInfo.ping != null}
+          <div class="row"><span>Ping</span><span>{userInfo.ping} ms</span></div>
+        {/if}
+        <div class="row"><span>Status</span><span>{userInfo.online ? 'Online' : 'Offline'}</span></div>
+        <div class="row"><span>Firewall</span><span>{userInfo.firewalled ? 'Firewalled (push)' : 'Direct'}</span></div>
+        <div class="btns">
+          <WinButton label="Hot List" onclick={() => { client.addHot(userInfo.nick); app.dialogs.userInfo = null }} />
+          <WinButton label="Message" onclick={() => { client.msg(userInfo.nick, ''); app.dialogs.userInfo = null }} />
+          <span class="spacer"></span>
+          <WinButton primary label="OK" onclick={() => (app.dialogs.userInfo = null)} />
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if app.dialogs.help}
+  <div class="dialog-backdrop">
+    <div class="window dialog">
+      <TitleBar title={HELP[app.dialogs.help].title} buttons="close" onclose={() => (app.dialogs.help = null)} />
+      <div class="body">
+        {#each HELP[app.dialogs.help].body as para (para.slice(0, 40))}
+          <p>{para}</p>
+        {/each}
+        <div class="btns">
+          <WinButton label="Getting Started" small onclick={() => (app.dialogs.help = 'start')} />
+          <WinButton label="FAQ" small onclick={() => (app.dialogs.help = 'faq')} />
+          <span class="spacer"></span>
+          <WinButton primary label="OK" onclick={() => (app.dialogs.help = null)} />
         </div>
       </div>
     </div>
@@ -499,5 +664,36 @@
   }
   code {
     font-size: 11px;
+  }
+  .shop-hero {
+    background: linear-gradient(#1a1a6e, #000040);
+    color: #ffcc00;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 700;
+  }
+  .shop-hero span {
+    color: #fff8d0;
+    font-weight: 400;
+    min-width: 0;
+  }
+  .shop-list {
+    margin: 0;
+    padding-left: 18px;
+    max-height: 180px;
+    overflow: auto;
+  }
+  .ignore-row {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 3px 6px;
+    background: #fff;
+  }
+  .ignore-row:hover {
+    background: var(--sel);
+    color: var(--sel-text);
   }
 </style>

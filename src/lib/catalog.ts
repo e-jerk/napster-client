@@ -348,6 +348,15 @@ export function buildPeers(): PeerDef[] {
   }))
 }
 
+export const DISCOVER = [
+  { artist: 'Bedroom Studio', genre: 'Indie', blurb: 'Four-track demos bounced to disk in a dorm. Updated daily on Discover in 2001.' },
+  { artist: 'Winamp Kids', genre: 'Electronic', blurb: 'Equalizer presets and playlist 47 — unsigned, share-folder famous.' },
+  { artist: '56k Saints', genre: 'Folk', blurb: 'Handshake hymns recorded through a US Robotics. Buy the CD at CDNOW (historical).' },
+  { artist: 'Geocities Band', genre: 'Pop', blurb: 'Under construction since 1999. Visitor counter still rolling.' },
+  { artist: 'OpenNap Orchestra', genre: 'Experimental', blurb: 'Message type 200 and End of Search, performed live on napster.local.' },
+  { artist: 'Late Night Encode', genre: 'Rock', blurb: 'LAME 3.90 presets. Independent artists used Discover to promote rips of their own CDs.' },
+]
+
 export const MOTD = [
   'Welcome to napster.local — Napster v2.0 BETA 10.3 (web).',
   'Hub is an in-browser OpenNap replica. Zero native sockets.',

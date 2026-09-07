@@ -59,8 +59,10 @@
       items: [
         { label: 'Download', action: `download:${id}` },
         { label: `Browse ${hit.nick}`, action: `browse:${hit.nick}` },
-        { label: 'Add to Hot List', action: `hot:${hit.nick}` },
-        { label: 'Private Message', action: `pm:${hit.nick}` },
+        { label: 'Add user to Hot List', action: `hot:${hit.nick}` },
+        { label: 'Instant Message', action: `pm:${hit.nick}` },
+        { label: 'View User Information', action: `info:${hit.nick}` },
+        { label: 'Ignore', action: `ignore:${hit.nick}` },
       ],
     }
   }
@@ -90,6 +92,13 @@
         disabled={!app.connected || app.search.searching}
         onclick={() => client.search()}
       />
+      <WinButton
+        label="Clear Fields"
+        onclick={() => {
+          app.search.artist = ''
+          app.search.title = ''
+        }}
+      />
     </div>
   </div>
   <WinListView
@@ -103,6 +112,24 @@
     ondblclick={downloadId}
     oncontext={context}
   />
+  <div class="actions">
+    <WinButton
+      label="Get Selected Songs"
+      disabled={!app.search.selected}
+      onclick={() => {
+        const hit = app.search.results.find((r) => r.id === app.search.selected)
+        if (hit) client.download(hit)
+      }}
+    />
+    <WinButton
+      label="Add Selected User to Hot List"
+      disabled={!app.search.selected}
+      onclick={() => {
+        const hit = app.search.results.find((r) => r.id === app.search.selected)
+        if (hit) client.addHot(hit.nick)
+      }}
+    />
+  </div>
 </div>
 
 <style>
@@ -127,6 +154,14 @@
   }
   .go {
     padding-bottom: 1px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
   @media (max-width: 800px) {
     .form {

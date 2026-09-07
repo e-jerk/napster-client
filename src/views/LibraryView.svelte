@@ -32,6 +32,10 @@
   function playId(id: string) {
     const item = app.library.find((f) => f.id === id)
     if (!item?.blob) return
+    if (!app.player.internal) {
+      app.status = `External player would open ${item.filename} (Winamp banner is on the ad strip).`
+      return
+    }
     if (app.player.url) URL.revokeObjectURL(app.player.url)
     app.player.url = URL.createObjectURL(item.blob)
     app.player.id = item.id

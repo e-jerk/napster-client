@@ -14,7 +14,9 @@ export const SPEEDS = [
 
 export type SpeedId = (typeof SPEEDS)[number]['id']
 
-export type AppView = 'chat' | 'library' | 'search' | 'hotlist' | 'transfer'
+export type AppView = 'home' | 'chat' | 'library' | 'search' | 'hotlist' | 'transfer' | 'discover'
+
+export type HelpTopic = 'start' | 'manual' | 'faq' | 'support'
 
 export type SharedFile = {
   filename: string

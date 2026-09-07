@@ -1,17 +1,9 @@
 <script lang="ts">
-  import { client } from '../lib/network'
+  import { cmdAbout, cmdConnect, cmdDisconnect, cmdExit, cmdView } from '../lib/commands'
   import { app, setTheme } from '../lib/session.svelte'
-  import type { AppView } from '../lib/types'
+  import AppMenus from '../ui/AppMenus.svelte'
   import ThemeSwitch from '../ui/ThemeSwitch.svelte'
   import MainClient from './MainClient.svelte'
-
-  const tools: { id: AppView; label: string }[] = [
-    { id: 'chat', label: 'Chat' },
-    { id: 'library', label: 'Library' },
-    { id: 'search', label: 'Search' },
-    { id: 'hotlist', label: 'Hot List' },
-    { id: 'transfer', label: 'Transfer' },
-  ]
 
   let clock = $state(formatClock())
 
@@ -83,6 +75,7 @@
       <button class="app-name" class:open={app.dialogs.menu === 'app'} onclick={() => toggleMenu('app')}>Napster</button>
       <button class:open={app.dialogs.menu === 'file'} onclick={() => toggleMenu('file')}>File</button>
       <button class:open={app.dialogs.menu === 'view'} onclick={() => toggleMenu('view')}>View</button>
+      <button class:open={app.dialogs.menu === 'actions'} onclick={() => toggleMenu('actions')}>Actions</button>
       <button class:open={app.dialogs.menu === 'window'} onclick={() => toggleMenu('window')}>Window</button>
       <button class:open={app.dialogs.menu === 'help'} onclick={() => toggleMenu('help')}>Help</button>
       <div class="status-items">
@@ -107,48 +100,26 @@
       </div>
     {:else if app.dialogs.menu === 'app'}
       <div class="menu-pop" style="left: 28px; top: 24px">
-        <button onclick={() => { app.dialogs.about = true; closeMenus() }}>About Napster</button>
+        <button onclick={() => cmdAbout()}>About Napster</button>
         <div class="sep"></div>
-        <button onclick={() => { if (app.connected) client.disconnect(); app.phase = 'setup'; closeMenus() }}>Connect…</button>
-        <button disabled={!app.connected} onclick={() => { client.disconnect(); closeMenus() }}>Disconnect</button>
+        <button onclick={() => cmdConnect()}>Connect…</button>
+        <button disabled={!app.connected} onclick={() => cmdDisconnect()}>Disconnect</button>
         <div class="sep"></div>
-        <button onclick={() => { app.win.open = false; closeMenus() }}>Quit Napster</button>
+        <button onclick={() => cmdExit()}>Quit Napster</button>
       </div>
     {:else if app.dialogs.menu === 'file'}
-      <div class="menu-pop" style="left: 92px; top: 24px">
-        <button onclick={() => { if (app.connected) client.disconnect(); app.phase = 'setup'; closeMenus() }}>Connect…</button>
-        <button disabled={!app.connected} onclick={() => { client.disconnect(); closeMenus() }}>Disconnect</button>
-        <div class="sep"></div>
-        <button disabled={!app.connected} onclick={() => { app.dialogs.join = true; closeMenus() }}>Join Channel…</button>
-        <button onclick={() => { app.win.open = false; closeMenus() }}>Close Window</button>
-      </div>
+      <AppMenus which="file" left="92px" top="24px" />
     {:else if app.dialogs.menu === 'view'}
-      <div class="menu-pop" style="left: 124px; top: 24px">
-        {#each tools as t (t.id)}
-          <button onclick={() => { app.view = t.id; closeMenus() }}>{t.label}</button>
-        {/each}
-        <div class="sep"></div>
-        <button onclick={() => setTheme('windows')}>Windows 98 look</button>
-        <button onclick={() => setTheme('mac')}>Mac OS X look</button>
-      </div>
+      <AppMenus which="view" left="124px" top="24px" />
+    {:else if app.dialogs.menu === 'actions'}
+      <AppMenus which="actions" left="164px" top="24px" />
     {:else if app.dialogs.menu === 'window'}
-      <div class="menu-pop" style="left: 168px; top: 24px">
+      <div class="menu-pop" style="left: 224px; top: 24px">
         <button onclick={() => { openNapster(); closeMenus() }}>Napster</button>
         <button onclick={() => { app.win.maximized = !app.win.maximized; closeMenus() }}>{app.win.maximized ? 'Restore' : 'Zoom'}</button>
-        <div class="sep"></div>
-        <button disabled={!app.connected} onclick={() => { app.dialogs.join = true; closeMenus() }}>Join Channel…</button>
-        <button disabled={!app.connected} onclick={() => { app.dialogs.bridge = true; closeMenus() }}>TCP Bridge…</button>
       </div>
     {:else if app.dialogs.menu === 'help'}
-      <div class="menu-pop" style="left: 232px; top: 24px">
-        <button onclick={() => { app.dialogs.about = true; closeMenus() }}>Napster Help</button>
-        <button onclick={() => { window.open('https://archive.org/details/napv2b10-3', '_blank'); closeMenus() }}>Original EXE on archive.org</button>
-        {#if app.hub === 'wss'}
-          <button onclick={() => { window.location.href = '/'; closeMenus() }}>OpenNAP</button>
-          <button onclick={() => { window.location.href = '/?ui=win'; closeMenus() }}>Napster</button>
-          <button onclick={() => { window.location.href = '/?ui=mac'; closeMenus() }}>Mac</button>
-        {/if}
-      </div>
+      <AppMenus which="help" left="280px" top="24px" />
     {/if}
 
     <button class="desktop-icon hd" onclick={() => (app.status = 'Macintosh HD — 6.4 GB available')}>
@@ -251,8 +222,8 @@
           <ellipse cx="20" cy="23" rx="11" ry="9" fill="#d9a066" />
         </svg>
       </button>
-      <button class="dock-item" title="Search" onclick={() => { openNapster(); app.view = 'search' }}>⌕</button>
-      <button class="dock-item" title="Chat" onclick={() => { openNapster(); app.view = 'chat' }}>💬</button>
+      <button class="dock-item" title="Search" onclick={() => { openNapster(); cmdView('search') }}>⌕</button>
+      <button class="dock-item" title="Chat" onclick={() => { openNapster(); cmdView('chat') }}>💬</button>
       <div class="dock-sep"></div>
       <button class="dock-item" title="Trash" onclick={() => (app.status = 'Trash is empty.')}>🗑</button>
     </nav>

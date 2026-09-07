@@ -26,9 +26,10 @@
       x: e.clientX,
       y: e.clientY,
       items: [
-        { label: 'Private Message', action: `pm:${nick}` },
+        { label: 'Instant Message', action: `pm:${nick}` },
         { label: 'Whois', action: `whois:${nick}` },
-        { label: 'Add to Hot List', action: `hot:${nick}` },
+        { label: 'View User Information', action: `info:${nick}` },
+        { label: 'Add user to Hot List', action: `hot:${nick}` },
         { label: 'Browse Files', action: `browse:${nick}` },
         { label: 'Ignore', action: `ignore:${nick}` },
       ],
@@ -39,7 +40,13 @@
 <div class="chat">
   <div class="main">
     <div class="chat-log" bind:this={logEl}>
-      {#each app.chat.messages.filter((m) => !m.channel || sameChannel(m.channel, app.chat.channel) || m.kind === 'system' || m.kind === 'private') as line (line.id)}
+      {#each app.chat.messages.filter((m) => {
+        const nick = m.nick
+        const visible =
+          !m.channel || sameChannel(m.channel, app.chat.channel) || m.kind === 'system' || m.kind === 'private'
+        const hidden = Boolean(nick && m.kind === 'public' && app.ignore.some((n) => n.toLowerCase() === nick.toLowerCase()))
+        return visible && !hidden
+      }) as line (line.id)}
         {#if line.kind === 'system'}
           <div class="sys">*** {line.text}</div>
         {:else if line.kind === 'private'}

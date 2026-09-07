@@ -1,23 +1,31 @@
 <script lang="ts">
-  import { client } from '../lib/network'
-  import { app, setTheme } from '../lib/session.svelte'
+  import { cmdHelp, cmdView } from '../lib/commands'
+  import { app } from '../lib/session.svelte'
   import type { AppView } from '../lib/types'
+  import AdBanner from '../ui/AdBanner.svelte'
+  import AppMenus from '../ui/AppMenus.svelte'
   import CatLogo from '../ui/CatLogo.svelte'
+  import CdnowButton from '../ui/CdnowButton.svelte'
   import ThemeSwitch from '../ui/ThemeSwitch.svelte'
   import TitleBar from '../ui/TitleBar.svelte'
   import ChatView from './ChatView.svelte'
   import Dialogs from './Dialogs.svelte'
+  import DiscoverView from './DiscoverView.svelte'
+  import HomeView from './HomeView.svelte'
   import HotlistView from './HotlistView.svelte'
   import LibraryView from './LibraryView.svelte'
   import SearchView from './SearchView.svelte'
   import TransferView from './TransferView.svelte'
 
-  const tools: { id: AppView; label: string }[] = [
+  const tools: { id: AppView | 'help'; label: string }[] = [
+    { id: 'home', label: 'Home' },
     { id: 'chat', label: 'Chat' },
     { id: 'library', label: 'Library' },
     { id: 'search', label: 'Search' },
     { id: 'hotlist', label: 'Hot List' },
     { id: 'transfer', label: 'Transfer' },
+    { id: 'discover', label: 'Discover' },
+    { id: 'help', label: 'Help' },
   ]
 
   let dragging = $state(false)
@@ -46,8 +54,9 @@
     app.dialogs.start = false
   }
 
-  function onlineOnly(): boolean {
-    return app.connected
+  function clickTool(id: AppView | 'help') {
+    if (id === 'help') cmdHelp('start')
+    else cmdView(id)
   }
 
   const style = $derived.by(() => {
@@ -57,6 +66,10 @@
     if (app.theme === 'mac') return 'inset: 28px 10px 76px 10px; width: auto; height: auto;'
     return 'inset: 8px 8px 38px 8px; width: auto; height: auto;'
   })
+
+  const sharing = $derived(
+    `Sharing ${app.library.length} files, Currently ${app.stats.files.toLocaleString()} files (${Number.isFinite(app.stats.gigs) ? app.stats.gigs.toFixed(1) : '0.0'} gigabytes) available in ${app.stats.users} libraries`,
+  )
 </script>
 
 <svelte:window onpointermove={dragMove} onpointerup={dragEnd} />
@@ -93,55 +106,28 @@
       <button class:open={app.dialogs.menu === 'actions'} onclick={() => toggleMenu('actions')}>Actions</button>
       <button class:open={app.dialogs.menu === 'help'} onclick={() => toggleMenu('help')}>Help</button>
     </div>
-
     {#if app.dialogs.menu === 'file'}
-      <div class="menu-pop" style="left: 8px; top: 44px">
-        <button onclick={() => { app.dialogs.menu = null; if (app.connected) client.disconnect(); app.phase = 'setup' }}>Connect…</button>
-        <button disabled={!app.connected} onclick={() => { app.dialogs.menu = null; client.disconnect() }}>Disconnect</button>
-        <div class="sep"></div>
-        <button onclick={() => { app.dialogs.menu = null; app.win.open = false }}>Exit</button>
-      </div>
+      <AppMenus which="file" left="8px" top="44px" />
     {:else if app.dialogs.menu === 'view'}
-      <div class="menu-pop" style="left: 40px; top: 44px">
-        {#each tools as t (t.id)}
-          <button onclick={() => { app.view = t.id; app.dialogs.menu = null }}>{t.label}</button>
-        {/each}
-        <div class="sep"></div>
-        <button onclick={() => setTheme('windows')}>Windows 98 look</button>
-        <button onclick={() => setTheme('mac')}>Mac OS X look</button>
-      </div>
+      <AppMenus which="view" left="40px" top="44px" />
     {:else if app.dialogs.menu === 'actions'}
-      <div class="menu-pop" style="left: 78px; top: 44px">
-        <button disabled={!onlineOnly()} onclick={() => { app.view = 'search'; app.dialogs.menu = null }}>Find…</button>
-        <button
-          disabled={!app.search.selected}
-          onclick={() => {
-            const hit = app.search.results.find((r) => r.id === app.search.selected)
-            if (hit) client.download(hit)
-            app.dialogs.menu = null
-          }}>Download</button
-        >
-        <button disabled={!onlineOnly()} onclick={() => { app.dialogs.join = true; app.dialogs.menu = null }}>Join Channel…</button>
-        <div class="sep"></div>
-        <button disabled={!onlineOnly()} onclick={() => { app.dialogs.bridge = true; app.dialogs.menu = null }}>TCP Bridge…</button>
-      </div>
+      <AppMenus which="actions" left="78px" top="44px" />
     {:else if app.dialogs.menu === 'help'}
-      <div class="menu-pop" style="left: 132px; top: 44px">
-        <button onclick={() => { app.dialogs.about = true; app.dialogs.menu = null }}>About Napster</button>
-        <button onclick={() => { window.open('https://archive.org/details/napv2b10-3', '_blank'); app.dialogs.menu = null }}>Original EXE on archive.org</button>
-        {#if app.hub === 'wss'}
-          <button onclick={() => { window.location.href = '/'; app.dialogs.menu = null }}>OpenNAP</button>
-          <button onclick={() => { window.location.href = '/?ui=win'; app.dialogs.menu = null }}>Napster</button>
-          <button onclick={() => { window.location.href = '/?ui=mac'; app.dialogs.menu = null }}>Mac</button>
-        {/if}
-      </div>
+      <AppMenus which="help" left="132px" top="44px" />
     {/if}
   {/if}
 
   <div class="toolbar groove">
     {#each tools as t (t.id)}
-      <button class="tool" class:active={app.view === t.id} onclick={() => (app.view = t.id)} disabled={app.phase === 'setup'}>
-        {#if t.id === 'chat'}
+      <button
+        class="tool"
+        class:active={t.id !== 'help' && app.view === t.id}
+        onclick={() => clickTool(t.id)}
+        disabled={app.phase === 'setup' && t.id !== 'help' && t.id !== 'home'}
+      >
+        {#if t.id === 'home'}
+          <svg viewBox="0 0 32 32"><path d="M4 16 16 6l12 10v12H4z" fill="#c9a06a" stroke="#000" /><rect x="13" y="18" width="6" height="10" fill="#6b3e16" /></svg>
+        {:else if t.id === 'chat'}
           <svg viewBox="0 0 32 32"><rect x="2" y="4" width="18" height="12" fill="#fff" stroke="#000" /><rect x="10" y="14" width="18" height="12" fill="#c6e4ff" stroke="#000" /></svg>
         {:else if t.id === 'library'}
           <svg viewBox="0 0 32 32"><path d="M4 10h10l2 3h12v13H4z" fill="#f4d060" stroke="#000" /><path d="M12 18c6 0 8 4 8 4s-1-8-8-8-8 8-8 8 2-4 8-4z" fill="#1e4ea8" /></svg>
@@ -149,19 +135,28 @@
           <svg viewBox="0 0 32 32"><circle cx="12" cy="14" r="6" fill="none" stroke="#000" stroke-width="2" /><circle cx="20" cy="14" r="6" fill="none" stroke="#000" stroke-width="2" /></svg>
         {:else if t.id === 'hotlist'}
           <svg viewBox="0 0 32 32"><path d="M16 4c6 8 10 12 10 18a10 10 0 1 1-20 0c0-6 4-10 10-18z" fill="#e67a00" stroke="#000" /></svg>
-        {:else}
+        {:else if t.id === 'transfer'}
           <svg viewBox="0 0 32 32"><path d="M6 10h8V6l8 8-8 8v-4H6z" fill="#2f7d32" stroke="#000" /><path d="M26 22h-8v4l-8-8 8-8v4h8z" fill="#1565c0" stroke="#000" /></svg>
+        {:else if t.id === 'discover'}
+          <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="#1e4ea8" stroke="#000" /><path d="M16 7c4 3 6 6 6 9s-2 6-6 9c-4-3-6-6-6-9s2-6 6-9z" fill="#7ec8ff" /></svg>
+        {:else}
+          <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#fff8d0" stroke="#000" /><text x="16" y="21" text-anchor="middle" font-size="16" font-weight="700">?</text></svg>
         {/if}
         {t.label}
       </button>
     {/each}
     <div class="look">
+      <CdnowButton />
       <ThemeSwitch />
     </div>
   </div>
 
+  <AdBanner />
+
   <div class="workspace">
-    {#if app.view === 'chat'}
+    {#if app.view === 'home'}
+      <HomeView />
+    {:else if app.view === 'chat'}
       <ChatView />
     {:else if app.view === 'library'}
       <LibraryView />
@@ -169,16 +164,16 @@
       <SearchView />
     {:else if app.view === 'hotlist'}
       <HotlistView />
+    {:else if app.view === 'discover'}
+      <DiscoverView />
     {:else}
       <TransferView />
     {/if}
   </div>
 
   <div class="statusbar">
-    <div style="flex: 1 1 220px">{app.status}</div>
-    <div>{app.stats.files.toLocaleString()} files</div>
-    <div>{Number.isFinite(app.stats.gigs) ? app.stats.gigs.toFixed(1) : '0.0'} GB</div>
-    <div>{app.stats.users} users</div>
+    <div style="flex: 1 1 280px">{app.status}</div>
+    <div class="share" title={sharing}>{sharing}</div>
     <div>{app.connected ? 'Connected' : 'Offline'} · {app.nick}</div>
   </div>
 
@@ -210,6 +205,11 @@
     margin-left: auto;
     display: flex;
     align-items: center;
+    gap: 8px;
     padding-right: 6px;
+  }
+  .share {
+    flex: 1 1 260px;
+    min-width: 0;
   }
 </style>

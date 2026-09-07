@@ -130,7 +130,9 @@
         <button onclick={() => { app.dialogs.about = true; app.dialogs.menu = null }}>About Napster</button>
         <button onclick={() => { window.open('https://archive.org/details/napv2b10-3', '_blank'); app.dialogs.menu = null }}>Original EXE on archive.org</button>
         {#if app.hub === 'wss'}
-          <button onclick={() => { window.location.href = '/'; app.dialogs.menu = null }}>OpenNAP chat</button>
+          <button onclick={() => { window.location.href = '/'; app.dialogs.menu = null }}>OpenNAP</button>
+          <button onclick={() => { window.location.href = '/?ui=win'; app.dialogs.menu = null }}>Napster</button>
+          <button onclick={() => { window.location.href = '/?ui=mac'; app.dialogs.menu = null }}>Mac</button>
         {/if}
       </div>
     {/if}

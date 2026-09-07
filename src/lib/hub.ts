@@ -1,12 +1,23 @@
 export type HubKind = 'demo' | 'wss'
 
+function uiParam(): string {
+  if (typeof location === 'undefined') return ''
+  return (new URLSearchParams(location.search).get('ui') || '').toLowerCase()
+}
+
+export function uiTheme(): 'windows' | 'mac' | null {
+  const ui = uiParam()
+  if (ui === 'mac') return 'mac'
+  if (ui === 'win' || ui === 'windows' || ui === 'napster') return 'windows'
+  return null
+}
+
 export function detectHub(): HubKind {
   if (typeof location === 'undefined') return 'demo'
   const q = new URLSearchParams(location.search)
   if (q.get('hub') === 'demo') return 'demo'
   if (q.get('hub') === 'wss') return 'wss'
-  const path = location.pathname.replace(/\/+$/, '') || '/'
-  if (path === '/napster' || path.endsWith('/napster')) return 'wss'
+  if (servedFromOpenNap()) return 'wss'
   return 'demo'
 }
 
@@ -22,7 +33,8 @@ export function defaultWssUrl(): string {
 export function servedFromOpenNap(): boolean {
   if (typeof location === 'undefined') return false
   const path = location.pathname.replace(/\/+$/, '') || '/'
-  return path === '/napster' || path.endsWith('/napster')
+  if (path === '/napster' || path.endsWith('/napster')) return true
+  return uiTheme() !== null
 }
 
 export function sameChannel(a: string, b: string): boolean {

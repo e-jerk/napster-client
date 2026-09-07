@@ -1,6 +1,10 @@
+import { uiTheme } from './hub'
+
 export type Theme = 'windows' | 'mac'
 
 export function readTheme(): Theme {
+  const fromUi = uiTheme()
+  if (fromUi) return fromUi
   try {
     const stored = localStorage.getItem('napster-theme')
     if (stored === 'windows' || stored === 'mac') return stored

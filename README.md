@@ -63,7 +63,7 @@ npm run check
 
 ## OpenNAP WebSocket
 
-The same UI can speak `naps-1` over WebSocket to a live [OpenNAP](https://github.com/e-jerk/opennap) hub. Served from that server at `/napster`, it defaults to the current origin (`ws:` / `wss:`). From this Vite app, choose **This OpenNAP server** on the nickname dialog, or open:
+The same UI can speak `naps-1` over WebSocket to a live [OpenNAP](https://github.com/e-jerk/opennap) hub. Served from that server at `/?ui=win` or `/?ui=mac`, it defaults to the current origin (`ws:` / `wss:`). From this Vite app, choose **This OpenNAP server** on the nickname dialog, or open:
 
 ```
 http://127.0.0.1:43179/?hub=wss&server=wss://napster.example.com/

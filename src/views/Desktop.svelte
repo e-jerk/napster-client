@@ -144,7 +144,9 @@
         <button onclick={() => { app.dialogs.about = true; closeMenus() }}>Napster Help</button>
         <button onclick={() => { window.open('https://archive.org/details/napv2b10-3', '_blank'); closeMenus() }}>Original EXE on archive.org</button>
         {#if app.hub === 'wss'}
-          <button onclick={() => { window.location.href = '/'; closeMenus() }}>OpenNAP chat</button>
+          <button onclick={() => { window.location.href = '/'; closeMenus() }}>OpenNAP</button>
+          <button onclick={() => { window.location.href = '/?ui=win'; closeMenus() }}>Napster</button>
+          <button onclick={() => { window.location.href = '/?ui=mac'; closeMenus() }}>Mac</button>
         {/if}
       </div>
     {/if}

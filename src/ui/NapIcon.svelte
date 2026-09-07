@@ -31,7 +31,7 @@
     width: var(--nap-size, 16px);
     height: var(--nap-size, 16px);
     flex: 0 0 var(--nap-size, 16px);
-    object-fit: contain;
+    object-fit: fill;
     object-position: center;
     image-rendering: pixelated;
     image-rendering: crisp-edges;

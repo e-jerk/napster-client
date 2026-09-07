@@ -368,7 +368,7 @@ select.field {
   width: 32px;
   height: 32px;
   flex: 0 0 32px;
-  object-fit: contain;
+  object-fit: fill;
   object-position: center;
 }
 
@@ -543,7 +543,7 @@ select.field {
 .task-ico,
 .dock-item img {
   display: block;
-  object-fit: contain;
+  object-fit: fill;
   object-position: center;
   image-rendering: pixelated;
   image-rendering: crisp-edges;

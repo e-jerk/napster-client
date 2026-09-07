@@ -27,11 +27,11 @@
       y: e.clientY,
       items: [
         { label: 'Instant Message', action: `pm:${nick}` },
-        { label: 'Whois', action: `whois:${nick}` },
-        { label: 'View User Information', action: `info:${nick}` },
-        { label: 'Add user to Hot List', action: `hot:${nick}` },
+        { label: 'Add to Hot List', action: `hot:${nick}` },
         { label: 'Browse Files', action: `browse:${nick}` },
-        { label: 'Ignore', action: `ignore:${nick}` },
+        { label: 'View User Information', action: `info:${nick}` },
+        { label: 'Ignore User', action: `ignore:${nick}` },
+        { label: 'Unignore User', action: `unignore:${nick}` },
       ],
     }
   }
@@ -83,7 +83,7 @@
     <WinInput bind:value={app.chat.input} width="100%" onenter={send} placeholder="message, /help /join /me /msg /whois /away /topic /history" />
     <WinButton label="Send" onclick={send} disabled={!app.connected} />
     <span class="ch">{displayChannel(app.chat.channel)}</span>
-    <WinButton label="Join" small onclick={() => (app.dialogs.join = true)} disabled={!app.connected} />
+    <WinButton label="Chat Rooms" small onclick={() => (app.dialogs.join = true)} disabled={!app.connected} />
   </div>
 </div>
 

@@ -264,11 +264,44 @@ select.field {
 }
 
 .menu-pop button {
-  display: block;
+  display: flex;
   width: 100%;
   text-align: left;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
   padding: 3px 18px;
   background: transparent;
+}
+
+.menu-pop button em {
+  font-style: normal;
+  opacity: 0.65;
+  font-size: 10px;
+}
+
+.menu-pop .has-sub {
+  position: relative;
+}
+
+.menu-pop .has-sub > .fly::after {
+  content: '►';
+  font-size: 8px;
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.menu-pop .nested {
+  display: none;
+  position: absolute;
+  left: calc(100% - 4px);
+  top: -2px;
+  min-width: 200px;
+}
+
+.menu-pop .has-sub:hover > .nested,
+.menu-pop .has-sub:focus-within > .nested {
+  display: block;
 }
 
 .menu-pop button:hover:not(:disabled) {

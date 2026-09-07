@@ -13,8 +13,8 @@
 
 <div class="disc">
   <p>
-    Discover lists independent artists who promoted themselves through Napster. The 2.0 client
-    refreshed this pane daily. Titles here are original demo recordings from the in-browser catalog.
+    Discover loaded http://www.napster.com/client/discover.html in the 10.3 client and refreshed
+    daily. Titles here are original demo recordings from the in-browser catalog.
   </p>
   <div class="grid">
     {#each DISCOVER as d (d.artist)}

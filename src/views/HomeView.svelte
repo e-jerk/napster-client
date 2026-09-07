@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CLIENT_HOME } from '../lib/menus'
   import { cmdHelp, cmdShop, cmdView } from '../lib/commands'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
@@ -7,27 +8,31 @@
     {
       date: 'July 2, 2001',
       title: 'File transfers temporarily suspended',
-      body: 'File transfers have been temporarily suspended while Napster upgrades the databases that support our new file identification technology. Keep checking this space for updates. (Quoted from the July 2001 community bulletin — this hub still serves the original demo catalog.)',
+      body: 'File transfers have been temporarily suspended while Napster upgrades the databases that support our new file identification technology. Keep checking this space for updates.',
     },
     {
       date: 'June 27, 2001',
       title: 'You must use Napster 2.0 BETA 10.3',
-      body: 'We launched our new application using file identification last week. As of Wednesday, June 27, we are no longer supporting earlier versions. The server message was: You must upgrade your client at http://www.napster.com/',
+      body: 'We launched our new application using file identification last week. As of Wednesday, June 27, we are no longer supporting earlier versions. You must upgrade your client at http://www.napster.com/',
     },
     {
-      date: 'June 2001',
+      date: 'January 11, 2001',
       title: 'Shop for music at CDNOW',
-      body: 'Click the yellow CDNOW button to buy the CD when you hear something you love. The button shipped in 2.0 beta 9 and stayed through 10.3.',
+      body: 'Actions → Shop for Music at CDNOW and the toolbar wordmark open http://shop.napster.com (Bertelsmann / CDNOW, shipped in beta 9). BITMAP 452 in napster.exe is the 50×12 CDNOW mark.',
     },
   ]
 </script>
 
 <div class="home">
+  <div class="url raised">
+    <span class="proto">http://</span>
+    <span class="addr">{CLIENT_HOME.replace('http://', '')}</span>
+  </div>
   <div class="hero raised">
     <div>
       <h2>Napster Music Community</h2>
       <p>
-        Home is the bulletin the 2.0 client opened onto — what Napster was up to that week. You are
+        Home is the embedded IE pane from napster.exe — what Napster was up to that week. You are
         {app.connected ? `online as ${app.nick}` : 'offline'}.
       </p>
     </div>
@@ -49,7 +54,7 @@
   <div class="row">
     <WinButton label="Getting Started" small onclick={() => cmdHelp('start')} />
     <WinButton label="FAQ" small onclick={() => cmdHelp('faq')} />
-    <span class="hint">Sharing {app.library.length} files from this library.</span>
+    <span class="hint">Sharing {app.library.length} files from My Files.</span>
   </div>
 </div>
 
@@ -62,6 +67,20 @@
     gap: 8px;
     padding: 8px;
     overflow: auto;
+  }
+  .url {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    background: #fff;
+  }
+  .proto {
+    color: #808080;
+  }
+  .addr {
+    color: #000080;
   }
   .hero {
     display: flex;

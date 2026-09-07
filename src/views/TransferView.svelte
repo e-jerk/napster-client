@@ -56,6 +56,26 @@
   )
 
   let selected = $state<string | null>(null)
+
+  function transferContext(id: string, e: MouseEvent) {
+    selected = id
+    const t = app.transfers.find((x) => x.id === id)
+    app.dialogs.context = {
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        { label: 'Play File!', action: `xferplay:${id}`, disabled: t?.status !== 'Complete' },
+        { label: 'Force Transfer (if queued)', action: `force:${id}`, disabled: t?.status !== 'Queued' },
+        { label: 'Cancel Transfer', action: `cancel:${id}` },
+        { label: 'Delete/Abort Transfer', action: `abort:${id}` },
+        { label: 'Instant Message', action: `pm:${t?.nick ?? ''}`, disabled: !t },
+        { label: 'Add User to Hot List', action: `hot:${t?.nick ?? ''}`, disabled: !t },
+        { label: 'Browse Files', action: `browse:${t?.nick ?? ''}`, disabled: !t },
+        { label: 'View User Information', action: `info:${t?.nick ?? ''}`, disabled: !t },
+        { label: 'Clear Finished', action: 'clearfinished' },
+      ],
+    }
+  }
 </script>
 
 <div class="xfer">
@@ -67,6 +87,7 @@
       rows={downloads}
       bind:selected
       empty="No downloads. Double-click a search result to start one."
+      oncontext={transferContext}
     />
   </div>
   <div class="pane">
@@ -77,6 +98,7 @@
       rows={uploads}
       bind:selected
       empty="Nobody is downloading from your share folder yet."
+      oncontext={transferContext}
     />
   </div>
   <div class="actions">

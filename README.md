@@ -18,18 +18,22 @@ Browsers cannot open raw TCP sockets. Instead of Electron, Node `net`, or a nati
 
 Open **Actions → TCP Bridge…** after you connect to watch framed packets.
 
-## Menus and ads (2.0 BETA 10.3)
+## Menus and ads (from napster.exe)
 
-`napv2b10-3.exe` on archive.org is a MindVision VISE installer (the running `napster.exe` is packed inside). Menu and ad chrome is reconstructed from that installer metadata, the archive.org Connection Information screenshot, Kacper Poblocki’s 2001 write-up of **v2.0 BETA 9.6**, a contemporary interface screenshot (Home / Chat / Library / Search / Hot List / Transfer / Discover / Help), and the beta 9–10.2 CDNOW changelog.
+`napv2b10-3.exe` on archive.org is a MindVision VISE installer (`ESIV` overlay at `0x11000`). This project unpacked that overlay (byte-swap + raw deflate) and dumped **napster.exe** (581,632 bytes, MD5 `6d121b9717f53c48ee1254bd28ed9c00`). The EXE is not bundled here.
 
-| Menu | Items |
+Top-level menus are ASCII strings in `.rdata`. Context menus are `RT_MENU` 276–316. Shop chrome is **BITMAP 452** (50×12 CDNOW wordmark) and the URL `http://shop.napster.com`. Home / Discover / Help were embedded IE panes (`home.html?02b103`, `discover.html`, `client/help/…`). About credits AMP / PlayMedia, Windows Media, and Relatable.
+
+| Menu | Items (exact 10.3 labels) |
 | --- | --- |
 | **File** | Connect, Disconnect, Preferences, Exit |
-| **View** | Home, Chat, Library, Search, Hot List, Transfer, Discover |
-| **Actions** | Instant Message, Add user to Hot List, View User Information, Join Chat Rooms, View Ignore List, Shop for music at CDNOW |
-| **Help** | Getting Started, Manual, Napster FAQ, Customer Support, About Napster |
+| **View** | Home (Ctrl+H), Chat (Ctrl+A), My Files (Ctrl+M), Search (Ctrl+S), Hot List (Ctrl+L), Transfer (Ctrl+T), Discover (Ctrl+D) |
+| **Actions** | Instant Message, Add User to Hot List, View User Information, Join Chat Rooms, View Ignore List, Shop for Music at CDNOW, Logon Server |
+| **Help** | Getting Started, Home, Manual (Installation…Extra Knowledge), Napster FAQ (Connecting…Company Info), Customer Support, Send Us Some Feedback!, About Napster |
 
-The toolbar matches those View tabs plus **Help** and the yellow **CDNOW** shop button. A rotating 468×60-style banner (CDNOW, Winamp, Napster Music Community, MP3.com) sits under the toolbar. Clicks open a local shop/help pane or an Internet Archive snapshot — no live ad network.
+The toolbar matches those View tabs plus **Help** and the **CDNOW** shop button. The strip under the toolbar rotates the four in-client surfaces the binary actually had (CDNOW / shop.napster.com, Home `?02b103`, Discover, AMP). Clicks open a local pane or an Internet Archive snapshot — no live ad network.
+
+Status bar wording is from the binary: `Online (nick): Sharing N files.` plus `Currently N users sharing N files (N gigs)`.
 
 ## Mac and Windows looks
 
@@ -51,7 +55,8 @@ The choice is stored in `localStorage` as `napster-theme`.
 - Hot list, browse user, context menus
 - Status bar share / library counts in the original “Sharing N files, Currently…” wording
 - Desktop theme switch (Mac Aqua ↔ Windows 98) around the same in-browser hub
-- Home bulletin, Discover artists, CDNOW shop, Help sheets, Preferences, Ignore List
+- Home bulletin (`home.html?02b103`), Discover, CDNOW / shop.napster.com, Help tree from napster.exe, Preferences tabs (Personal / Chat / Transfer / Proxy / My Files), Ignore List, Logon Server, Send Feedback
+- Search popup, user popup, My Files popup, Transfer popup, and Hot List popup from `RT_MENU` resources
 
 ## Run locally
 

@@ -2,6 +2,7 @@
   import { formatBitrate, formatDuration, formatFreq, formatSize, speedLabel } from '../lib/format'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
+  import { SPEEDS } from '../lib/types'
   import WinButton from '../ui/WinButton.svelte'
   import WinInput from '../ui/WinInput.svelte'
   import WinListView from '../ui/WinListView.svelte'
@@ -17,6 +18,13 @@
   ]
 
   const maxOpts = [50, 100, 200, 500].map((n) => ({ value: n, label: String(n) }))
+  const speedOpts = [{ value: 0, label: 'any' }, ...SPEEDS.filter((s) => s.id > 0).map((s) => ({ value: s.id, label: s.label }))]
+  const pingOpts = [
+    { value: 0, label: 'any' },
+    { value: 200, label: '< 200 ms' },
+    { value: 500, label: '< 500 ms' },
+    { value: 1000, label: '< 1000 ms' },
+  ]
 
   const columns = [
     { key: 'file', label: 'Filename', width: '240px' },
@@ -29,8 +37,17 @@
     { key: 'line', label: 'Connection', width: '110px' },
   ]
 
+  const filtered = $derived(
+    app.search.results.filter((r) => {
+      if (app.search.minBitrate && r.bitrate < app.search.minBitrate) return false
+      if (app.search.maxPing && r.ping > app.search.maxPing) return false
+      if (app.search.minSpeed && r.speed < app.search.minSpeed) return false
+      return true
+    }),
+  )
+
   const rows = $derived(
-    app.search.results.map((r) => ({
+    filtered.map((r) => ({
       id: r.id,
       values: [
         r.filename,
@@ -58,11 +75,11 @@
       y: e.clientY,
       items: [
         { label: 'Download', action: `download:${id}` },
-        { label: `Browse ${hit.nick}`, action: `browse:${hit.nick}` },
-        { label: 'Add user to Hot List', action: `hot:${hit.nick}` },
         { label: 'Instant Message', action: `pm:${hit.nick}` },
+        { label: 'Add to Hot List', action: `hot:${hit.nick}` },
+        { label: 'Browse Files', action: `browse:${hit.nick}` },
         { label: 'View User Information', action: `info:${hit.nick}` },
-        { label: 'Ignore', action: `ignore:${hit.nick}` },
+        { label: 'Clear Results', action: 'clear' },
       ],
     }
   }
@@ -93,14 +110,30 @@
         onclick={() => client.search()}
       />
       <WinButton
-        label="Clear Fields"
+        label="Clear"
         onclick={() => {
           app.search.artist = ''
           app.search.title = ''
         }}
       />
+      <WinButton
+        label={app.search.advanced ? 'Advanced <<' : 'Advanced >>'}
+        onclick={() => (app.search.advanced = !app.search.advanced)}
+      />
     </div>
   </div>
+  {#if app.search.advanced}
+    <div class="form extra">
+      <label class="narrow">
+        <span>Connection</span>
+        <WinSelect bind:value={app.search.minSpeed} options={speedOpts} width="100%" />
+      </label>
+      <label class="narrow">
+        <span>Ping Time</span>
+        <WinSelect bind:value={app.search.maxPing} options={pingOpts} width="100%" />
+      </label>
+    </div>
+  {/if}
   <WinListView
     persistKey="search"
     {columns}
@@ -114,7 +147,7 @@
   />
   <div class="actions">
     <WinButton
-      label="Get Selected Songs"
+      label="Get Selected Files"
       disabled={!app.search.selected}
       onclick={() => {
         const hit = app.search.results.find((r) => r.id === app.search.selected)
@@ -146,6 +179,10 @@
     grid-template-columns: 1.4fr 1.4fr 0.7fr 0.8fr auto;
     gap: 8px;
     align-items: end;
+  }
+  .form.extra {
+    grid-template-columns: 0.8fr 0.8fr;
+    max-width: 420px;
   }
   label {
     display: flex;

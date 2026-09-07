@@ -35,6 +35,19 @@
     bind:selected={app.hotSelected}
     empty="Your hot list is empty. Right-click a user in Search or Chat and choose Add to Hot List."
     ondblclick={browse}
+    oncontext={(id, e) => {
+      app.hotSelected = id
+      app.dialogs.context = {
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          { label: 'Instant Message', action: `pm:${id}` },
+          { label: 'View User Information', action: `info:${id}` },
+          { label: 'Browse Files', action: `browse:${id}` },
+          { label: 'Remove User', action: `removehot:${id}` },
+        ],
+      }
+    }}
   />
   <div class="row">
     <WinInput bind:value={addNick} placeholder="nickname" width="160px" onenter={() => {

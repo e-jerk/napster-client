@@ -14,11 +14,17 @@
     { key: 'src', label: 'Source', width: '80px' },
   ]
 
+  function displayName(filename: string) {
+    if (app.prefs.pathMode === 'full') return `C:\\Program Files\\Napster\\My Files\\${filename}`
+    if (app.prefs.pathMode === 'partial') return `My Files\\${filename}`
+    return filename
+  }
+
   const rows = $derived(
     app.library.map((f) => ({
       id: f.id,
       values: [
-        f.filename,
+        displayName(f.filename),
         f.artist,
         f.title,
         formatSize(f.size),
@@ -33,7 +39,7 @@
     const item = app.library.find((f) => f.id === id)
     if (!item?.blob) return
     if (!app.player.internal) {
-      app.status = `External player would open ${item.filename} (Winamp banner is on the ad strip).`
+      app.status = `Default Media Player would open ${item.filename} (AMP / PlayMedia is the Napster Internal Player).`
       return
     }
     if (app.player.url) URL.revokeObjectURL(app.player.url)
@@ -56,12 +62,29 @@
     {columns}
     {rows}
     bind:selected={app.librarySelected}
-    empty="Your share folder is empty."
+    empty="No Files shared."
     ondblclick={playId}
+    oncontext={(id, e) => {
+      app.librarySelected = id
+      app.dialogs.context = {
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          { label: 'Play File!', action: `play:${id}` },
+          { label: 'Add to Playlist', action: `play:${id}` },
+          { label: 'Rename File', action: `rename:${id}` },
+          { label: 'Delete (from disk)', action: `delete:${id}` },
+          { label: 'Refresh and Sort', action: 'refresh' },
+          { label: 'No Paths', action: 'paths:filename' },
+          { label: 'Partial Paths', action: 'paths:partial' },
+          { label: 'Full Paths', action: 'paths:full' },
+        ],
+      }
+    }}
   />
   <div class="player raised">
     <div class="now">
-      {app.player.title || 'Napster internal player — double-click a file'}
+      {app.player.title || 'Napster Internal Player — double-click a file (AMP)'}
     </div>
     <WinButton label="Play" small onclick={() => app.librarySelected && playId(app.librarySelected)} />
     <WinButton label="Stop" small onclick={stop} />

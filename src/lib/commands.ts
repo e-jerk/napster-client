@@ -75,6 +75,16 @@ export function cmdShop(): void {
   closeChrome()
 }
 
+export function cmdLogonServer(): void {
+  app.dialogs.logon = true
+  closeChrome()
+}
+
+export function cmdFeedback(): void {
+  app.dialogs.feedback = true
+  closeChrome()
+}
+
 export function cmdHelp(topic: HelpTopic): void {
   app.dialogs.help = topic
   closeChrome()

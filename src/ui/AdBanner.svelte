@@ -1,7 +1,6 @@
 <script lang="ts">
   import { BANNERS } from '../lib/ads'
-  import { cmdShop, cmdView } from '../lib/commands'
-  import { app } from '../lib/session.svelte'
+  import { cmdAbout, cmdShop, cmdView } from '../lib/commands'
 
   let i = $state(0)
   const ad = $derived(BANNERS[i % BANNERS.length]!)
@@ -16,10 +15,9 @@
   function click() {
     if (ad.action === 'shop') cmdShop()
     else if (ad.action === 'discover') cmdView('discover')
+    else if (ad.action === 'home') cmdView('home')
+    else if (ad.action === 'amp') cmdAbout()
     else if (ad.href) window.open(ad.href, '_blank', 'noreferrer')
-    else if (ad.action === 'winamp') {
-      app.dialogs.help = 'faq'
-    }
   }
 </script>
 
@@ -29,7 +27,7 @@
   style:background={ad.colors.bg}
   style:color={ad.colors.fg}
   onclick={click}
-  title="Historical 468×60 ad from the 2.0 client — not a live network"
+  title="From napster.exe — Home/Discover HTML and shop.napster.com, not a live ad network"
 >
   <span class="kicker" style:color={ad.colors.accent}>{ad.kicker}</span>
   <span class="copy">

@@ -1,7 +1,12 @@
 /**
- * Period ad chrome from Napster 2.0 beta 9–10.3 (2001).
- * CDNOW button: CNET, 2001; OldVersion 10.2 changelog.
- * Banner strip sat in the main window beside the toolbar.
+ * In-client ads and shop chrome from napster.exe (BETA 10.3).
+ *
+ * The binary does not embed a rotating 468×60 network. Ads lived in:
+ *   - Actions → Shop for Music at CDNOW + BITMAP 452 → http://shop.napster.com
+ *   - Home IE pane → http://www.napster.com/client/home.html?02b103
+ *   - Discover IE pane → http://www.napster.com/client/discover.html
+ *   - About → AMP / PlayMedia (amp.dll)
+ *
  * Clicks stay local or go to Internet Archive snapshots — no live ad network.
  */
 export type BannerAd = {
@@ -10,7 +15,7 @@ export type BannerAd = {
   title: string
   line: string
   href?: string
-  action?: 'shop' | 'discover' | 'winamp'
+  action?: 'shop' | 'discover' | 'home' | 'amp'
   colors: { bg: string; fg: string; accent: string }
 }
 
@@ -19,36 +24,38 @@ export const BANNERS: BannerAd[] = [
     id: 'cdnow',
     kicker: 'CDNOW',
     title: 'Shop for music at CDNOW',
-    line: 'Heard it on Napster? Buy the CD. Click here.',
+    line: 'http://shop.napster.com — Heard it on Napster? Buy the CD.',
     action: 'shop',
-    colors: { bg: '#1a1a6e', fg: '#fff8d0', accent: '#ffcc00' },
+    colors: { bg: '#0b1a6e', fg: '#ffffff', accent: '#ffcc00' },
   },
   {
-    id: 'winamp',
-    kicker: 'WINAMP',
-    title: 'It really whips the llama’s ass',
-    line: 'Play your Napster downloads in Winamp 2.77.',
-    action: 'winamp',
-    href: 'https://web.archive.org/web/20010615055932/http://www.winamp.com/',
-    colors: { bg: '#000000', fg: '#b4ff54', accent: '#ff9900' },
-  },
-  {
-    id: 'community',
+    id: 'home',
     kicker: 'NAPSTER',
     title: 'Napster Music Community',
-    line: '58 million members. Share files. Chat. Discover.',
-    action: 'discover',
+    line: 'Home — www.napster.com/client/home.html?02b103',
+    action: 'home',
     colors: { bg: '#0b3d91', fg: '#ffffff', accent: '#7ec8ff' },
   },
   {
-    id: 'mp3com',
-    kicker: 'MP3.COM',
-    title: 'Discover new music. Download songs.',
-    line: 'Unsigned bands and New Music Army — 1999–2001.',
-    href: 'https://web.archive.org/web/20010602041229/http://www.mp3.com/',
-    colors: { bg: '#336699', fg: '#ffffff', accent: '#ffcc66' },
+    id: 'discover',
+    kicker: 'DISCOVER',
+    title: 'Discover new music',
+    line: 'Unsigned artists — www.napster.com/client/discover.html',
+    action: 'discover',
+    colors: { bg: '#1e4ea8', fg: '#ffffff', accent: '#c6e4ff' },
+  },
+  {
+    id: 'amp',
+    kicker: 'AMP',
+    title: 'MP3 playback/decoding by AMP',
+    line: 'PlayMedia Systems, Inc. — www.playmediasystems.com',
+    action: 'amp',
+    href: 'https://web.archive.org/web/20010615024618/http://www.playmediasystems.com/',
+    colors: { bg: '#1a1a1a', fg: '#d8ffb0', accent: '#7cff3f' },
   },
 ]
 
 export const CDNOW_SNAPSHOT = 'https://web.archive.org/web/20010615024618/http://www.cdnow.com/'
-export const NAPSTER_SNAPSHOT = 'https://web.archive.org/web/20010615055900/http://www.napster.com/'
+export const SHOP_SNAPSHOT = 'https://web.archive.org/web/20010715000000/http://shop.napster.com/'
+export const HOME_SNAPSHOT = 'https://web.archive.org/web/20010615055900/http://www.napster.com/'
+export const NAPSTER_SNAPSHOT = HOME_SNAPSHOT

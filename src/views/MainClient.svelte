@@ -1,5 +1,6 @@
 <script lang="ts">
   import { cmdHelp, cmdView } from '../lib/commands'
+  import { networkStatus, offlineStatus, onlineStatus, VIEW_ITEMS, VIEW_SHORTCUTS } from '../lib/menus'
   import { app } from '../lib/session.svelte'
   import type { AppView } from '../lib/types'
   import AdBanner from '../ui/AdBanner.svelte'
@@ -18,13 +19,7 @@
   import TransferView from './TransferView.svelte'
 
   const tools: { id: AppView | 'help'; label: string }[] = [
-    { id: 'home', label: 'Home' },
-    { id: 'chat', label: 'Chat' },
-    { id: 'library', label: 'Library' },
-    { id: 'search', label: 'Search' },
-    { id: 'hotlist', label: 'Hot List' },
-    { id: 'transfer', label: 'Transfer' },
-    { id: 'discover', label: 'Discover' },
+    ...VIEW_ITEMS.map((t) => ({ id: t.id as AppView | 'help', label: t.label })),
     { id: 'help', label: 'Help' },
   ]
 
@@ -68,11 +63,23 @@
   })
 
   const sharing = $derived(
-    `Sharing ${app.library.length} files, Currently ${app.stats.files.toLocaleString()} files (${Number.isFinite(app.stats.gigs) ? app.stats.gigs.toFixed(1) : '0.0'} gigabytes) available in ${app.stats.users} libraries`,
+    app.connected
+      ? `${onlineStatus(app.nick, app.library.length)} ${networkStatus(app.stats.users, app.stats.files, app.stats.gigs)}`
+      : offlineStatus(app.nick),
   )
+
+  function onKey(e: KeyboardEvent) {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+    const t = e.target as HTMLElement
+    if (t.closest('input, textarea, select, [contenteditable="true"]')) return
+    const view = VIEW_SHORTCUTS[e.key.toLowerCase()]
+    if (!view) return
+    e.preventDefault()
+    cmdView(view)
+  }
 </script>
 
-<svelte:window onpointermove={dragMove} onpointerup={dragEnd} />
+<svelte:window onpointermove={dragMove} onpointerup={dragEnd} onkeydown={onKey} />
 
 <section class="window client" class:hidden={app.win.minimized || !app.win.open} style={style}>
   {#if app.theme === 'mac'}

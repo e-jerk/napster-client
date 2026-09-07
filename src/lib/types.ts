@@ -16,7 +16,30 @@ export type SpeedId = (typeof SPEEDS)[number]['id']
 
 export type AppView = 'home' | 'chat' | 'library' | 'search' | 'hotlist' | 'transfer' | 'discover'
 
-export type HelpTopic = 'start' | 'manual' | 'faq' | 'support'
+export type HelpTopic =
+  | 'start'
+  | 'manual'
+  | 'manual-install'
+  | 'manual-config'
+  | 'manual-chat'
+  | 'manual-myfiles'
+  | 'manual-search'
+  | 'manual-hotlist'
+  | 'manual-transfer'
+  | 'manual-discover'
+  | 'manual-extra'
+  | 'faq'
+  | 'faq-connecting'
+  | 'faq-chat'
+  | 'faq-myfiles'
+  | 'faq-search'
+  | 'faq-transfer'
+  | 'faq-company'
+  | 'support'
+
+export type PrefTab = 'personal' | 'chat' | 'transfer' | 'proxy' | 'files'
+
+export type PathMode = 'filename' | 'partial' | 'full'
 
 export type SharedFile = {
   filename: string

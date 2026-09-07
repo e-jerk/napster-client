@@ -11,7 +11,7 @@ export function readTheme(): Theme {
   } catch {
     /* ignore */
   }
-  return 'mac'
+  return 'windows'
 }
 
 export function persistTheme(theme: Theme): void {

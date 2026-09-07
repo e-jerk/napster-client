@@ -8,6 +8,8 @@ const target = document.getElementById('app')
 try {
   applyThemeAttr(readTheme())
   if (!target) throw new Error('Missing #app')
+  // Svelte mount() appends; leave the HTML splash in place and it covers the desktop.
+  target.replaceChildren()
   mount(App, { target })
 } catch (err) {
   const msg = err instanceof Error ? err.stack ?? err.message : String(err)

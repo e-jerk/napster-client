@@ -39,9 +39,9 @@
   .boot-err {
     display: grid;
     place-items: center;
-    background: var(--desktop);
+    background: #008080;
     color: #fff;
-    font: 12px/1.25 var(--font);
+    font: 12px/1.25 Tahoma, 'MS Sans Serif', sans-serif;
   }
   .boot-err {
     color: #fff0c0;

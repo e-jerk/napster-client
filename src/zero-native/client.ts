@@ -1,7 +1,10 @@
 import { renderPreviewWav } from '../lib/audio'
 import { LOCAL_LIBRARY } from '../lib/catalog'
 import { finiteNumber, hash32, parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
+import { libraryFromFile, listShareFiles, readShareFile, writeDownload } from '../lib/fs'
 import { sameChannel } from '../lib/hub'
+import { fetchMeta, pickHubUrl } from '../lib/meta'
+import { RtcMesh } from '../lib/rtc'
 import { app } from '../lib/session.svelte'
 import type { ChannelUser, LibraryItem, SearchHit, SharedFile, SpeedId, Transfer } from '../lib/types'
 import { shareLine } from './peers'
@@ -148,6 +151,7 @@ function firstWord(s: string): { head: string; rest: string } {
 
 export class NapsterClient {
   private sock: FrameSock | null = null
+  private rtc = new RtcMesh()
   private dataUnlisten: (() => void) | null = null
   private pending = new Map<string, Transfer>()
 
@@ -168,7 +172,17 @@ export class NapsterClient {
   async connect(nick: string, speed: SpeedId): Promise<void> {
     this.disconnect()
     app.phase = 'connecting'
-    const dataPort = 6699
+    const dataPort = app.hub === 'wss' ? 0 : 6699
+    if (app.hub === 'wss') {
+      try {
+        const hubs = await fetchMeta()
+        const url = pickHubUrl(hubs)
+        if (url) app.wssUrl = url
+        app.status = `Metaserver listed ${hubs.length} hub${hubs.length === 1 ? '' : 's'}`
+      } catch (err) {
+        app.status = err instanceof Error ? err.message : 'Metaserver unavailable'
+      }
+    }
     const remote = app.hub === 'wss' ? app.wssUrl : 'napster.local:8888'
     app.status = `Connecting to ${remote}…`
     if (app.hub === 'demo') {
@@ -186,6 +200,10 @@ export class NapsterClient {
       return
     }
     const reader = new PacketReader()
+    this.bindRtc()
+    this.sock.onText?.((text) => {
+      void this.rtc.handle(text)
+    })
     this.sock.onData((chunk) => {
       for (const pkt of reader.push(chunk)) {
         log('in', pkt.type, pkt.payload)
@@ -210,7 +228,39 @@ export class NapsterClient {
     }
   }
 
+  private bindRtc(): void {
+    this.rtc.attach((msg) => this.sock?.sendText?.(JSON.stringify(msg)))
+    this.rtc.onWant = (_nick, file) => readShareFile(file)
+    this.rtc.onFile = (nick, file, data) => {
+      const t = this.pending.get(`${nick}|${file}`) ?? app.transfers.find((x) => x.filename === file && x.nick === nick)
+      if (t) this.finishDownload(t, [data])
+    }
+    this.rtc.onProgress = (nick, file, got, size) => {
+      const t = this.pending.get(`${nick}|${file}`) ?? app.transfers.find((x) => x.filename === file && x.direction === 'download')
+      if (t && size > 0) this.patch(t.id, { status: 'Transferring', percent: Math.min(99, Math.round((got / size) * 100)), size })
+      const up = app.transfers.find((x) => x.direction === 'upload' && x.filename === file && x.nick === nick)
+      if (up && size > 0) this.patch(up.id, { status: 'Transferring', percent: Math.min(99, Math.round((got / size) * 100)) })
+    }
+    this.rtc.onError = (nick, err) => {
+      app.status = err
+      const t = app.transfers.find((x) => x.nick === nick && x.status === 'Connecting')
+      if (t) this.patch(t.id, { status: 'File not available' })
+    }
+  }
+
+  async shareFolder(): Promise<number> {
+    const files = await listShareFiles()
+    for (const file of files) {
+      const item = libraryFromFile(file)
+      app.library = [item, ...app.library.filter((x) => x.filename !== item.filename)]
+      this.share(item)
+    }
+    app.status = files.length ? `Sharing ${files.length} files from disk` : 'Share folder is empty'
+    return files.length
+  }
+
   disconnect(): void {
+    this.rtc.close()
     this.dataUnlisten?.()
     this.dataUnlisten = null
     this.sock?.close()
@@ -640,6 +690,30 @@ export class NapsterClient {
       case Msg.DOWNLOAD_ACK:
         this.beginDownload(payload)
         break
+      case Msg.UPLOAD_REQUEST: {
+        const q = parseQuoted(payload)
+        const nick = payload.trim().split(/\s+/)[0] ?? ''
+        const file = q?.quoted ?? ''
+        if (nick && file) {
+          const t: Transfer = {
+            id: uid('up'),
+            direction: 'upload',
+            filename: file,
+            artist: '',
+            title: file,
+            size: 0,
+            nick,
+            speed: 7,
+            status: 'Connecting',
+            percent: 0,
+            bps: 0,
+            startedAt: Date.now(),
+          }
+          app.transfers = [t, ...app.transfers]
+          app.status = `WebRTC upload ${file} → ${nick}`
+        }
+        break
+      }
       case Msg.PRIVATE:
         this.onPrivate(payload)
         break
@@ -895,8 +969,12 @@ export class NapsterClient {
     const t = this.pending.get(`${nick}|${q.quoted}`)
     if (!t) return
     if (app.hub === 'wss') {
-      this.patch(t.id, { status: 'Queued' })
-      app.status = 'Peer transfers need a classic Napster client on TCP 6699'
+      this.patch(t.id, { status: 'Connecting' })
+      app.status = `WebRTC from ${nick}…`
+      void this.rtc.request(nick, q.quoted).catch((err: unknown) => {
+        this.patch(t.id, { status: 'Timed out' })
+        app.status = err instanceof Error ? err.message : 'WebRTC failed'
+      })
       return
     }
     if (port === 0) {
@@ -1044,7 +1122,8 @@ export class NapsterClient {
       bytes.set(c, o)
       o += c.length
     }
-    const blob = bytes.length > 44 ? new Blob([bytes], { type: 'audio/wav' }) : renderPreviewWav(row.filename)
+    const blob = bytes.length > 44 ? new Blob([bytes]) : renderPreviewWav(row.filename)
+    void writeDownload(row.filename, blob)
     this.patch(row.id, {
       blob,
       percent: 100,

@@ -2,8 +2,10 @@
 
 export type FrameSock = {
   write: (data: Uint8Array | string) => void
+  sendText?: (data: string) => void
   close: () => void
   onData: (fn: (chunk: Uint8Array) => void) => () => void
+  onText?: (fn: (text: string) => void) => () => void
   onClose: (fn: () => void) => () => void
 }
 
@@ -13,6 +15,7 @@ export function connectWss(url: string): Promise<FrameSock> {
     const ws = new WebSocket(url, ['naps-1'])
     ws.binaryType = 'arraybuffer'
     const dataHandlers: Array<(chunk: Uint8Array) => void> = []
+    const textHandlers: Array<(text: string) => void> = []
     const closeHandlers: Array<() => void> = []
 
     const sock: FrameSock = {
@@ -23,6 +26,9 @@ export function connectWss(url: string): Promise<FrameSock> {
         copy.set(src)
         ws.send(copy)
       },
+      sendText(data) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(data)
+      },
       close() {
         ws.close()
       },
@@ -31,6 +37,13 @@ export function connectWss(url: string): Promise<FrameSock> {
         return () => {
           const i = dataHandlers.indexOf(fn)
           if (i >= 0) dataHandlers.splice(i, 1)
+        }
+      },
+      onText(fn) {
+        textHandlers.push(fn)
+        return () => {
+          const i = textHandlers.indexOf(fn)
+          if (i >= 0) textHandlers.splice(i, 1)
         }
       },
       onClose(fn) {
@@ -61,10 +74,12 @@ export function connectWss(url: string): Promise<FrameSock> {
       for (const h of closeHandlers) h()
     }
     ws.onmessage = (ev) => {
-      let chunk: Uint8Array
-      if (ev.data instanceof ArrayBuffer) chunk = new Uint8Array(ev.data)
-      else if (typeof ev.data === 'string') chunk = new TextEncoder().encode(ev.data)
-      else return
+      if (typeof ev.data === 'string') {
+        for (const h of textHandlers) h(ev.data)
+        return
+      }
+      if (!(ev.data instanceof ArrayBuffer)) return
+      const chunk = new Uint8Array(ev.data)
       for (const h of dataHandlers) h(chunk)
     }
   })

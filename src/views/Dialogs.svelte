@@ -263,6 +263,7 @@
               <WinInput bind:value={app.wssUrl} width="220px" placeholder="ws://host:8890/" onenter={connect} />
             </label>
           {/if}
+          <p class="muted">The client asks the metaserver over HTTP/WSS, then pulls files from each peer over WebRTC into a folder you pick.</p>
         {:else}
           <label class="row">
             <span>Email:</span>

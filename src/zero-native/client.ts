@@ -1,6 +1,6 @@
 import { renderPreviewWav } from '../lib/audio'
-import { LOCAL_LIBRARY } from '../lib/catalog'
-import { finiteNumber, hash32, parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
+import { basename, finiteNumber, hash32, parseQuoted, quoteFilename, transferSeconds, uid } from '../lib/format'
+import { isFakePath } from '../lib/persist'
 import { libraryFromFile, listShareFiles, pickShareFiles, readShareFile, writeDownload } from '../lib/fs'
 import { sameChannel } from '../lib/hub'
 import { fetchMeta, pickHubUrl } from '../lib/meta'
@@ -734,6 +734,7 @@ export class NapsterClient {
       case Msg.JOIN_ACK:
         app.chat.channel = payload
         app.chat.users = []
+        app.chat.messages = []
         app.chat.messages.push({
           id: uid('join'),
           kind: 'system',
@@ -1146,7 +1147,7 @@ export class NapsterClient {
     })
     const item: LibraryItem = {
       id: uid('lib'),
-      filename: row.filename,
+      filename: basename(row.filename),
       artist: row.artist,
       title: row.title,
       size: row.size,
@@ -1206,11 +1207,5 @@ export class NapsterClient {
 }
 
 export function seedLibrary(): void {
-  if (app.library.length) return
-  app.library = LOCAL_LIBRARY.map((f) => ({
-    ...f,
-    id: uid('lib'),
-    origin: 'shared' as const,
-    blob: renderPreviewWav(f.md5),
-  }))
+  app.library = app.library.filter((f) => !isFakePath(f.filename))
 }

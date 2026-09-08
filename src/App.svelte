@@ -2,20 +2,31 @@
   import { onMount } from 'svelte'
   import { uiFromLocation } from './lib/hub'
   import { startNetwork } from './lib/network'
+  import { bindPersist, loadSession } from './lib/persist'
   import { app, setUi } from './lib/session.svelte'
+  import { applyThemeAttr } from './lib/theme'
   import Desktop from './views/Desktop.svelte'
   import OpenNapView from './views/OpenNapView.svelte'
 
   let bootError = $state('')
 
   onMount(() => {
-    setUi(uiFromLocation(), 'replace')
     const onPop = () => setUi(uiFromLocation(), 'none')
     window.addEventListener('popstate', onPop)
-    void startNetwork().catch((err: unknown) => {
+    let unbind = () => {}
+    void (async () => {
+      await loadSession()
+      applyThemeAttr(app.theme)
+      setUi(uiFromLocation(), 'replace')
+      unbind = bindPersist()
+      await startNetwork()
+    })().catch((err: unknown) => {
       bootError = err instanceof Error ? err.message : 'Failed to start the in-browser hub'
     })
-    return () => window.removeEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      unbind()
+    }
   })
 </script>
 

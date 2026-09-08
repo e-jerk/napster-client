@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatBitrate, formatDuration, formatFreq, formatSize, speedLabel } from '../lib/format'
+  import { basename, formatBitrate, formatDuration, formatFreq, formatSize, speedLabel } from '../lib/format'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import { SPEEDS } from '../lib/types'
@@ -50,7 +50,7 @@
     filtered.map((r) => ({
       id: r.id,
       values: [
-        r.filename,
+        basename(r.filename),
         formatSize(r.size),
         formatBitrate(r.bitrate),
         formatFreq(r.freq),

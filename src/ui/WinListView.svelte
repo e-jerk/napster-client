@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { loadCols, saveCols } from '../lib/persist'
 
   export type Column = {
     key: string
@@ -74,23 +75,15 @@
 
   function persist() {
     if (!persistKey) return
-    try {
-      localStorage.setItem(`nap-cols:${persistKey}`, JSON.stringify(widths))
-    } catch {
-      /* ignore */
-    }
+    void saveCols(persistKey, widths)
   }
 
   onMount(() => {
     if (!persistKey) return
-    try {
-      const raw = localStorage.getItem(`nap-cols:${persistKey}`)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as Record<string, number>
+    void loadCols().then((all) => {
+      const parsed = all[persistKey]
       if (parsed && typeof parsed === 'object') widths = parsed
-    } catch {
-      /* ignore */
-    }
+    })
   })
 
   function header(i: number) {

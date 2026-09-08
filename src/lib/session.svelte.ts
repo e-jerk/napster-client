@@ -128,6 +128,7 @@ export function persistNick(): void {
   } catch {
     /* ignore */
   }
+  void import('./persist').then((p) => p.schedulePersist()).catch(() => {})
 }
 
 export function setTheme(theme: Theme): void {
@@ -165,4 +166,5 @@ export function setUi(ui: Iface, mode: 'push' | 'replace' | 'none' = 'push'): vo
   if (`${location.pathname}${location.search}` === next) return
   if (mode === 'replace') history.replaceState({ ui }, '', next)
   else history.pushState({ ui }, '', next)
+  void import('./persist').then((p) => p.schedulePersist()).catch(() => {})
 }

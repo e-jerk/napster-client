@@ -3,7 +3,7 @@
   import { CHANNELS, DISCOVER } from '../lib/catalog'
   import { addIgnore, removeIgnore } from '../lib/commands'
   import { SHOP_NAPSTER } from '../lib/menus'
-  import { formatBitrate, formatDuration, formatSize, speedLabel } from '../lib/format'
+  import { basename, formatBitrate, formatDuration, formatSize, speedLabel } from '../lib/format'
   import { HELP } from '../lib/help'
   import { servedFromOpenNap } from '../lib/hub'
   import { client, ensureDemoHub } from '../lib/network'
@@ -164,7 +164,7 @@
   const browseRows = $derived(
     app.browse.files.map((f, i) => ({
       id: `br-${i}`,
-      values: [f.filename, formatSize(f.size), formatBitrate(f.bitrate), formatDuration(f.duration)],
+      values: [basename(f.filename), formatSize(f.size), formatBitrate(f.bitrate), formatDuration(f.duration)],
     })),
   )
 

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { formatBitrate, formatDuration, formatSize } from '../lib/format'
-  import { hasFs, pickDownloads } from '../lib/fs'
+  import { basename, formatBitrate, formatDuration, formatSize } from '../lib/format'
+  import { hasFs, pickDownloads, readDownloadFile, readShareFile } from '../lib/fs'
+  import { rememberDownloadDir } from '../lib/persist'
   import { client } from '../lib/network'
   import { app } from '../lib/session.svelte'
   import WinButton from '../ui/WinButton.svelte'
@@ -17,9 +18,10 @@
   ]
 
   function displayName(filename: string) {
-    if (app.prefs.pathMode === 'full') return `C:\\Program Files\\Napster\\My Files\\${filename}`
-    if (app.prefs.pathMode === 'partial') return `My Files\\${filename}`
-    return filename
+    const name = basename(filename)
+    if (app.prefs.pathMode === 'full') return `My Files\\${name}`
+    if (app.prefs.pathMode === 'partial') return `My Files\\${name}`
+    return name
   }
 
   const rows = $derived(
@@ -37,15 +39,20 @@
     })),
   )
 
-  function playId(id: string) {
+  async function playId(id: string) {
     const item = app.library.find((f) => f.id === id)
-    if (!item?.blob) return
+    if (!item) return
+    const blob = item.blob ?? (await readShareFile(item.filename)) ?? (await readDownloadFile(item.filename))
+    if (!blob) {
+      app.status = `${basename(item.filename)} is not on disk in this session`
+      return
+    }
     if (!app.player.internal) {
-      app.status = `Default Media Player would open ${item.filename} (AMP / PlayMedia is the Napster Internal Player).`
+      app.status = `Default Media Player would open ${basename(item.filename)} (AMP / PlayMedia is the Napster Internal Player).`
       return
     }
     if (app.player.url) URL.revokeObjectURL(app.player.url)
-    app.player.url = URL.createObjectURL(item.blob)
+    app.player.url = URL.createObjectURL(blob)
     app.player.id = item.id
     app.player.title = `${item.artist} - ${item.title}`
     app.player.playing = true
@@ -103,7 +110,10 @@
         small
         onclick={async () => {
           const dir = await pickDownloads()
-          if (dir) app.status = `Downloads → ${dir.name}`
+          if (dir) {
+            await rememberDownloadDir(dir)
+            app.status = `Downloads → ${dir.name}`
+          }
         }}
       />
     {/if}

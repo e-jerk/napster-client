@@ -2,6 +2,7 @@
   import { hasFs, pickDownloads } from '../lib/fs'
   import { displayChannel, sameChannel } from '../lib/hub'
   import { client } from '../lib/network'
+  import { rememberDownloadDir } from '../lib/persist'
   import { app, persistNick, setUi } from '../lib/session.svelte'
 
   let logEl: HTMLDivElement | undefined = $state()
@@ -81,7 +82,10 @@
         type="button"
         onclick={async () => {
           const dir = await pickDownloads()
-          if (dir) app.status = `Downloads → ${dir.name}`
+          if (dir) {
+            await rememberDownloadDir(dir)
+            app.status = `Downloads → ${dir.name}`
+          }
         }}>Save to</button
       >
     {/if}

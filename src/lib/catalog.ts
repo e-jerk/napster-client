@@ -101,16 +101,8 @@ const TRACKS: TrackRow[] = [
   ['Resume Hash', 'Same Song Faster Host', 230, 192, 44100],
 ]
 
-const PATHS = [
-  (a: string, t: string) => `C:\\My Music\\${a}\\${a} - ${t}.mp3`,
-  (a: string, t: string) => `D:\\mp3s\\${a} - ${t}.mp3`,
-  (a: string, t: string) => `C:\\Program Files\\Napster\\downloads\\${a} - ${t}.mp3`,
-  (a: string, t: string) => `C:\\Windows\\Desktop\\${t}.mp3`,
-  (a: string, t: string) => `E:\\shared\\${a}\\${t}.mp3`,
-]
-
-export function makeFile(artist: string, title: string, duration: number, bitrate: number, freq: number, pathIdx = 0): SharedFile {
-  const filename = (PATHS[pathIdx % PATHS.length] ?? PATHS[0])!(artist, title)
+export function makeFile(artist: string, title: string, duration: number, bitrate: number, freq: number, _pathIdx = 0): SharedFile {
+  const filename = `${artist} - ${title}.mp3`
   const size = Math.round((bitrate * 1000 * duration) / 8)
   return {
     filename,
@@ -328,12 +320,6 @@ const PEER_SEEDS: Array<{
   },
 ]
 
-export const LOCAL_LIBRARY: SharedFile[] = [
-  makeFile('Library Card', 'Local Collection', 200, 128, 44100, 0),
-  makeFile('Green Eyed Cat', 'Headphones On', 238, 128, 44100, 2),
-  makeFile('Next Button', 'Just Hit Next', 159, 96, 44100, 3),
-]
-
 export function buildPeers(): PeerDef[] {
   return PEER_SEEDS.map((p, i) => ({
     nick: p.nick,
@@ -343,7 +329,7 @@ export function buildPeers(): PeerDef[] {
     lines: p.lines,
     files: p.take.map((idx, j) => {
       const row = TRACKS[idx] ?? TRACKS[0]!
-      return makeFile(row[0], row[1], row[2], row[3], row[4], (i + j) % PATHS.length)
+      return makeFile(row[0], row[1], row[2], row[3], row[4], i + j)
     }),
   }))
 }

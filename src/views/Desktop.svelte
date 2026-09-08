@@ -30,7 +30,7 @@
     app.win.minimized = false
     app.dialogs.start = false
     app.dialogs.menu = null
-    if (app.phase === 'online' && !app.connected) app.phase = 'setup'
+    if (app.phase === 'online' && !app.connected) app.phase = 'login'
   }
 
   function toggleMenu(name: string) {

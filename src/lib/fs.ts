@@ -18,6 +18,34 @@ export function downloadDir(): DirHandle | null {
   return downloads
 }
 
+async function permit(dir: DirHandle, mode: FileSystemPermissionMode): Promise<boolean> {
+  const query = dir.queryPermission?.({ mode })
+  const now = query ? await query : 'granted'
+  if (now === 'granted') return true
+  if (now === 'denied') return false
+  return (await dir.requestPermission?.({ mode })) === 'granted'
+}
+
+export async function adoptShare(dir: DirHandle | null): Promise<boolean> {
+  if (!dir) return false
+  share = dir
+  try {
+    return await permit(dir, 'read')
+  } catch {
+    return false
+  }
+}
+
+export async function adoptDownloads(dir: DirHandle | null): Promise<boolean> {
+  if (!dir) return false
+  downloads = dir
+  try {
+    return await permit(dir, 'readwrite')
+  } catch {
+    return false
+  }
+}
+
 export async function pickShare(): Promise<DirHandle | null> {
   if (!hasFs()) return null
   share = await window.showDirectoryPicker({ id: 'opennap-share', mode: 'read' })
@@ -42,6 +70,17 @@ export async function pickDownloads(): Promise<DirHandle | null> {
   if (!hasFs()) return null
   downloads = await window.showDirectoryPicker({ id: 'opennap-downloads', mode: 'readwrite' })
   return downloads
+}
+
+export async function readDownloadFile(name: string): Promise<File | null> {
+  if (!downloads) return null
+  const base = name.replace(/^.*[/\\]/, '')
+  try {
+    const handle = await downloads.getFileHandle(base)
+    return await handle.getFile()
+  } catch {
+    return null
+  }
 }
 
 export async function listShareFiles(): Promise<File[]> {

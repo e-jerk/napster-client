@@ -14,10 +14,14 @@ interface FileSystemWritableFileStream extends WritableStream {
   close(): Promise<void>
 }
 
+type FileSystemPermissionMode = 'read' | 'readwrite'
+
 interface FileSystemDirectoryHandle extends FileSystemHandle {
   readonly kind: 'directory'
   getFileHandle(name: string, opts?: { create?: boolean }): Promise<FileSystemFileHandle>
   entries(): AsyncIterableIterator<[string, FileSystemFileHandle | FileSystemDirectoryHandle]>
+  queryPermission?(opts?: { mode?: FileSystemPermissionMode }): Promise<PermissionState>
+  requestPermission?(opts?: { mode?: FileSystemPermissionMode }): Promise<PermissionState>
 }
 
 interface Window {

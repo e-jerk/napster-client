@@ -27,7 +27,7 @@
       setUi('win')
     }}
   >
-    Napster
+    Win98
   </button>
   <button
     type="button"

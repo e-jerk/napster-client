@@ -63,7 +63,7 @@
     <h1>OpenNAP</h1>
     <nav class="ifaces" aria-label="Interface">
       <button type="button" class="on" onclick={() => setUi('chat')}>OpenNAP</button>
-      <button type="button" onclick={() => setUi('win')}>Napster</button>
+      <button type="button" onclick={() => setUi('win')}>Win98</button>
       <button type="button" onclick={() => setUi('mac')}>Mac</button>
     </nav>
     <input bind:value={app.nick} placeholder="nick" autocomplete="username" maxlength="19" />

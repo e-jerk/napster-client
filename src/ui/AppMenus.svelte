@@ -104,7 +104,7 @@
     {#if app.hub === 'wss'}
       <div class="sep"></div>
       <button onclick={() => { setUi('chat'); closeChrome() }}>OpenNAP</button>
-      <button onclick={() => { setUi('win'); closeChrome() }}>Napster</button>
+      <button onclick={() => { setUi('win'); closeChrome() }}>Win98</button>
       <button onclick={() => { setUi('mac'); closeChrome() }}>Mac</button>
     {/if}
   </div>

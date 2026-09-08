@@ -25,18 +25,63 @@
     { id: 'help', label: 'Help' },
   ]
 
+  type Edge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+
   let dragging = $state(false)
+  let resizing = $state<Edge | null>(null)
   let dx = 0
   let dy = 0
+  let start = { x: 0, y: 0, w: 0, h: 0, left: 0, top: 0 }
+  const MIN_W = 480
+  const MIN_H = 360
 
   function dragStart(e: PointerEvent) {
-    if (app.win.maximized) return
+    if (app.win.maximized || resizing) return
     dragging = true
     dx = e.clientX - app.win.x
     dy = e.clientY - app.win.y
   }
 
+  function resizeStart(edge: Edge, e: PointerEvent) {
+    if (app.win.maximized) return
+    e.stopPropagation()
+    e.preventDefault()
+    resizing = edge
+    start = {
+      x: e.clientX,
+      y: e.clientY,
+      w: app.win.w,
+      h: app.win.h,
+      left: app.win.x,
+      top: app.win.y,
+    }
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
   function dragMove(e: PointerEvent) {
+    if (resizing) {
+      const ox = e.clientX - start.x
+      const oy = e.clientY - start.y
+      let w = start.w
+      let h = start.h
+      let left = start.left
+      let top = start.top
+      if (resizing.includes('e')) w = Math.max(MIN_W, start.w + ox)
+      if (resizing.includes('s')) h = Math.max(MIN_H, start.h + oy)
+      if (resizing.includes('w')) {
+        w = Math.max(MIN_W, start.w - ox)
+        left = start.left + start.w - w
+      }
+      if (resizing.includes('n')) {
+        h = Math.max(MIN_H, start.h - oy)
+        top = start.top + start.h - h
+      }
+      app.win.w = w
+      app.win.h = h
+      app.win.x = Math.max(0, left)
+      app.win.y = Math.max(app.theme === 'mac' ? 24 : 0, top)
+      return
+    }
     if (!dragging) return
     app.win.x = Math.max(0, e.clientX - dx)
     app.win.y = Math.max(app.theme === 'mac' ? 24 : 0, e.clientY - dy)
@@ -44,6 +89,7 @@
 
   function dragEnd() {
     dragging = false
+    resizing = null
   }
 
   function toggleMenu(name: string) {
@@ -81,9 +127,14 @@
   }
 </script>
 
-<svelte:window onpointermove={dragMove} onpointerup={dragEnd} onkeydown={onKey} />
+<svelte:window onpointermove={dragMove} onpointerup={dragEnd} onpointercancel={dragEnd} onkeydown={onKey} />
 
-<section class="window client" class:hidden={app.win.minimized || !app.win.open} style={style}>
+<section
+  class="window client"
+  class:hidden={app.win.minimized || !app.win.open}
+  class:resizing={dragging || resizing}
+  style={style}
+>
   {#if app.theme === 'mac'}
     <TitleBar
       title="Napster v2.0 BETA 10.3"
@@ -171,6 +222,17 @@
   </div>
 
   <Dialogs />
+
+  {#if !app.win.maximized}
+    <button type="button" tabindex="-1" class="grip n" aria-label="Resize top" onpointerdown={(e) => resizeStart('n', e)}></button>
+    <button type="button" tabindex="-1" class="grip s" aria-label="Resize bottom" onpointerdown={(e) => resizeStart('s', e)}></button>
+    <button type="button" tabindex="-1" class="grip e" aria-label="Resize right" onpointerdown={(e) => resizeStart('e', e)}></button>
+    <button type="button" tabindex="-1" class="grip w" aria-label="Resize left" onpointerdown={(e) => resizeStart('w', e)}></button>
+    <button type="button" tabindex="-1" class="grip ne" aria-label="Resize top-right" onpointerdown={(e) => resizeStart('ne', e)}></button>
+    <button type="button" tabindex="-1" class="grip nw" aria-label="Resize top-left" onpointerdown={(e) => resizeStart('nw', e)}></button>
+    <button type="button" tabindex="-1" class="grip se" aria-label="Resize bottom-right" onpointerdown={(e) => resizeStart('se', e)}></button>
+    <button type="button" tabindex="-1" class="grip sw" aria-label="Resize bottom-left" onpointerdown={(e) => resizeStart('sw', e)}></button>
+  {/if}
 </section>
 
 <style>
@@ -179,10 +241,53 @@
     z-index: 5;
     min-width: 320px;
     min-height: 280px;
+    overflow: visible;
+  }
+  .client.resizing {
+    user-select: none;
   }
   .hidden {
     display: none;
   }
+  .grip {
+    position: absolute;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    appearance: none;
+    z-index: 30;
+    touch-action: none;
+  }
+  .grip.n,
+  .grip.s {
+    left: 10px;
+    right: 10px;
+    height: 6px;
+    cursor: ns-resize;
+  }
+  .grip.e,
+  .grip.w {
+    top: 10px;
+    bottom: 10px;
+    width: 6px;
+    cursor: ew-resize;
+  }
+  .grip.n { top: 0; }
+  .grip.s { bottom: 0; }
+  .grip.e { right: 0; }
+  .grip.w { left: 0; }
+  .grip.ne,
+  .grip.nw,
+  .grip.se,
+  .grip.sw {
+    width: 14px;
+    height: 14px;
+  }
+  .grip.ne { top: 0; right: 0; cursor: nesw-resize; }
+  .grip.nw { top: 0; left: 0; cursor: nwse-resize; }
+  .grip.se { bottom: 0; right: 0; cursor: nwse-resize; }
+  .grip.sw { bottom: 0; left: 0; cursor: nesw-resize; }
   .workspace {
     flex: 1;
     min-height: 0;
